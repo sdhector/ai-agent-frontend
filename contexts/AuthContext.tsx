@@ -53,45 +53,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await getToken();
       if (!token) {
-        console.log('No token found, skipping auth check');
+        console.log('[AUTH] No token found, skipping auth check');
         setIsLoading(false);
         setUser(null);
         return;
       }
 
-      console.log('Token found, checking auth status');
+      console.log('[AUTH] Token found, checking auth status');
+
+      // Try to get cached user data first
+      const userId = await getUserId();
+      const userEmail = await getUserEmail();
+      const userName = await getUserName();
+      const userPicture = await getUserPicture();
 
       // Try to fetch CSRF token from backend (this sets the cookie)
       // Only on web platform where CSRF tokens are needed
-      // Use retry logic for CSRF token fetch
+      // Use a single retry with timeout
       if (Platform.OS === 'web') {
-        let csrfSuccess = false;
-        const maxRetries = 3;
+        try {
+          // Add timeout to CSRF fetch (5 seconds max)
+          const csrfPromise = fetchCSRFToken(API_BASE_URL);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('CSRF fetch timeout')), 5000)
+          );
 
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            await fetchCSRFToken(API_BASE_URL);
-            csrfSuccess = true;
-            break;
-          } catch (csrfError) {
-            console.warn(`[AUTH] CSRF token fetch failed (attempt ${attempt}/${maxRetries}):`, csrfError);
+          await Promise.race([csrfPromise, timeoutPromise]);
+          console.log('[AUTH] CSRF token fetched successfully');
+        } catch (csrfError) {
+          console.warn('[AUTH] CSRF token fetch failed, will use cached data if available:', csrfError);
 
-            if (attempt < maxRetries) {
-              // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-            }
-          }
-        }
-
-        // If all retries failed, try to use cached user data
-        if (!csrfSuccess) {
-          console.warn('[AUTH] Backend not reachable after retries, using cached auth data');
-          const userId = await getUserId();
-          const userEmail = await getUserEmail();
-          const userName = await getUserName();
-          const userPicture = await getUserPicture();
-
-          // If we have cached user data, use it temporarily
+          // If we have cached user data, use it and continue
           if (userId && userEmail && userName) {
             setUser({
               id: userId,
@@ -104,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           } else {
             // No cached data and backend unreachable - clear and show login
-            console.warn('[AUTH] No cached data and backend unreachable - clearing auth');
+            console.warn('[AUTH] No cached data and backend unreachable - showing login');
             await clearUserData();
             setUser(null);
             setIsLoading(false);
@@ -113,53 +105,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Try to get user from storage first - but verify with backend
-      const userId = await getUserId();
-      const userEmail = await getUserEmail();
-      const userName = await getUserName();
-      const userPicture = await getUserPicture();
+      // Try to verify with backend (with timeout)
+      try {
+        console.log('[AUTH] Fetching user data from backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
 
-      // Always verify with backend, don't trust cached data alone
-      console.log('Fetching user data from backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
+        // Add 10 second timeout to auth status check
+        const authPromise = apiClient.get(API_ENDPOINTS.AUTH.STATUS);
+        const timeoutPromise = new Promise<Response>((_, reject) =>
+          setTimeout(() => reject(new Error('Auth status timeout')), 10000)
+        );
 
-      console.log('Auth status response status:', response.status);
+        const response = await Promise.race([authPromise, timeoutPromise]);
+        console.log('[AUTH] Auth status response status:', response.status);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Auth status response data:', data);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[AUTH] Auth status response data:', data);
 
-        if (data.user) {
-          const userData = {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name,
-            picture: data.user.picture,
-          };
-          setUser(userData);
+          if (data.user) {
+            const userData = {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.name,
+              picture: data.user.picture,
+            };
+            setUser(userData);
 
-          // Save to storage
-          await saveUserId(userData.id);
-          await saveUserEmail(userData.email);
-          await saveUserName(userData.name);
-          if (userData.picture) await saveUserPicture(userData.picture);
+            // Save to storage
+            await saveUserId(userData.id);
+            await saveUserEmail(userData.email);
+            await saveUserName(userData.name);
+            if (userData.picture) await saveUserPicture(userData.picture);
 
-          console.log('User data verified and saved to storage');
-        } else {
-          console.warn('No user data in response');
+            console.log('[AUTH] User data verified and saved to storage');
+          } else {
+            console.warn('[AUTH] No user data in response');
+            await clearUserData();
+            setUser(null);
+          }
+        } else if (response.status === 401 || response.status === 403) {
+          // Only clear on actual auth failures
+          console.warn('[AUTH] Auth check failed with 401/403 - token invalid, clearing data');
           await clearUserData();
           setUser(null);
+        } else {
+          // Other errors (5xx, network) - use cached data if available
+          console.warn('[AUTH] Auth status check failed with status:', response.status);
+          if (userId && userEmail && userName) {
+            console.log('[AUTH] Using cached user data due to backend error');
+            setUser({
+              id: userId,
+              email: userEmail,
+              name: userName,
+              picture: userPicture || undefined,
+            });
+          } else {
+            await clearUserData();
+            setUser(null);
+          }
         }
-      } else if (response.status === 401 || response.status === 403) {
-        // Only clear on actual auth failures
-        console.warn('Auth check failed with 401/403 - token invalid, clearing data');
-        await clearUserData();
-        setUser(null);
-      } else {
-        // Other errors (5xx, network) - keep cached data if available
-        console.warn('Auth status check failed with status:', response.status);
+      } catch (fetchError) {
+        console.warn('[AUTH] Backend fetch error:', fetchError);
+
+        // Use cached data if available
         if (userId && userEmail && userName) {
-          console.log('Using cached user data due to backend error');
+          console.log('[AUTH] Using cached user data due to fetch error');
           setUser({
             id: userId,
             email: userEmail,
@@ -167,33 +177,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             picture: userPicture || undefined,
           });
         } else {
+          console.log('[AUTH] No cached data available, clearing auth data');
           await clearUserData();
           setUser(null);
         }
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
-
-      // Try to use cached data instead of immediately clearing
-      const userId = await getUserId();
-      const userEmail = await getUserEmail();
-      const userName = await getUserName();
-      const userPicture = await getUserPicture();
-
-      if (userId && userEmail && userName) {
-        console.log('Using cached user data due to error');
-        setUser({
-          id: userId,
-          email: userEmail,
-          name: userName,
-          picture: userPicture || undefined,
-        });
-      } else {
-        // No cached data - clear everything
-        console.log('No cached data available, clearing auth data');
-        await clearUserData();
-        setUser(null);
-      }
+      console.error('[AUTH] Unexpected error in checkAuthStatus:', error);
+      // Always clear on unexpected errors to prevent hanging
+      await clearUserData();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }

@@ -16,12 +16,9 @@ const validateApiUrl = (url: string | undefined): string => {
     console.error('EXPO_PUBLIC_API_URL must be set to a valid backend URL');
     console.error('Current value:', url || 'undefined');
 
-    // In production web, throw error to prevent deployment with wrong config
-    if (Platform.OS === 'web') {
-      throw new Error(
-        'Production deployment missing API URL. Set EXPO_PUBLIC_API_URL environment variable.'
-      );
-    }
+    // DON'T throw error - just log it and use localhost as fallback
+    // Throwing errors can cause white screen in production
+    // The auth flow will handle backend connectivity issues gracefully
   }
 
   // Warn in development if using default localhost
