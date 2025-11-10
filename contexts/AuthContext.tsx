@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Otherwise fetch from API
+      console.log('Checking auth status with backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
       if (response.ok) {
         const data = await response.json();
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await saveUserName(userData.name);
         if (userData.picture) await saveUserPicture(userData.picture);
       } else {
+        console.warn('Auth status check failed:', response.status);
         // Token invalid, clear it
         await clearUserData();
       }
@@ -104,8 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async () => {
     if (Platform.OS === 'web') {
-      // Web: Use popup window
+      // Web: Use full page redirect
       const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}`;
+      console.log('Redirecting to auth URL:', authUrl);
+      console.log('API_BASE_URL:', API_BASE_URL);
+      
+      // Direct redirect to backend OAuth flow
       window.location.href = authUrl;
     } else {
       // Native: Use expo-auth-session
