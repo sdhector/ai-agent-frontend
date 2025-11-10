@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!token) {
         console.log('No token found, skipping auth check');
         setIsLoading(false);
+        setUser(null);
         return;
       }
 
@@ -78,28 +79,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Otherwise fetch from API
-      console.log('Checking auth status with backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
+      console.log('Fetching user data from backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
+      
+      console.log('Auth status response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        console.log('Auth status response:', data);
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
-          picture: data.user.picture,
-        };
-        setUser(userData);
+        console.log('Auth status response data:', data);
+        
+        if (data.user) {
+          const userData = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            picture: data.user.picture,
+          };
+          setUser(userData);
 
-        // Save to storage
-        await saveUserId(userData.id);
-        await saveUserEmail(userData.email);
-        await saveUserName(userData.name);
-        if (userData.picture) await saveUserPicture(userData.picture);
+          // Save to storage
+          await saveUserId(userData.id);
+          await saveUserEmail(userData.email);
+          await saveUserName(userData.name);
+          if (userData.picture) await saveUserPicture(userData.picture);
+          
+          console.log('User data saved to storage');
+        } else {
+          console.warn('No user data in response');
+          await clearUserData();
+          setUser(null);
+        }
       } else {
         console.warn('Auth status check failed:', response.status);
         // Token invalid, clear it
         await clearUserData();
+        setUser(null);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -108,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         console.log('Clearing user data due to auth error');
         await clearUserData();
+        setUser(null);
       }
     } finally {
       setIsLoading(false);
@@ -117,9 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     if (Platform.OS === 'web') {
       // Web: Use full page redirect
-      const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}`;
+      // Add the frontend callback URL so backend knows where to redirect
+      const callbackUrl = `${window.location.origin}/(auth)/oauth-callback`;
+      const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(callbackUrl)}`;
+      
       console.log('Redirecting to auth URL:', authUrl);
       console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('Callback URL:', callbackUrl);
       
       // Direct redirect to backend OAuth flow
       window.location.href = authUrl;
