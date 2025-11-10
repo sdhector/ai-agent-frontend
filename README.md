@@ -42,7 +42,7 @@ This is a React Native application built with Expo that can deploy to:
 
 ## Features
 
-### Current Features (Phase 4 Complete)
+### Current Features (Phase 5 Complete)
 - ✅ **Authentication**: Google OAuth login with platform-specific flows
 - ✅ **AI Chat**: Real-time streaming chat with Claude models (Sonnet 4.5, Opus 4.1, Haiku 3.5)
 - ✅ **Conversations**: Save, load, and delete chat history
@@ -53,13 +53,18 @@ This is a React Native application built with Expo that can deploy to:
 - ✅ **4-Tab Navigation**: Chat, History, MCP, Settings
 - ✅ **Platform-specific Storage**: localStorage (web) / SecureStore (Android)
 - ✅ **Responsive UI**: NativeWind/Tailwind styling
-- ✅ **API Client**: Fetch wrapper with JWT authentication
+- ✅ **API Client**: Fetch wrapper with JWT + CSRF token authentication
+- ✅ **PWA Support**: Complete Progressive Web App implementation
+  - Web app manifest with install prompts
+  - Service worker with offline support
+  - Intelligent caching (cache-first for assets, network-first for API)
+  - Install button component
+  - iOS and Android PWA compatibility
 
-### Planned Features (Phase 5-8)
-- 🚧 **PWA Deployment**: Deploy to Firebase Hosting with CI/CD
-- 🚧 **Offline Support**: Service worker caching (PWA)
-- 🚧 **Android APK**: Build and distribute native Android app
+### Planned Features (Phase 6-8)
+- 🚧 **Android APK**: Build and distribute native Android app via EAS Build
 - 🚧 **Push Notifications**: Web Push API and expo-notifications (optional)
+- 🚧 **Advanced Features**: File uploads, voice input, etc.
 
 ---
 
@@ -472,6 +477,38 @@ npx expo start -c
 2. Restart Metro bundler: `npm start -- --clear`
 3. Check `tailwind.config.js` content paths
 
+### Issue: CSRF Token Error (403 Forbidden)
+
+**Error**: `API Error 403: {"success":false,"error":"Invalid CSRF token"}`
+
+**Solution**:
+The app implements CSRF protection for state-changing requests (POST/PUT/DELETE). The CSRF token is automatically extracted from cookies set by the backend.
+
+1. **Verify backend sets CSRF cookie**:
+   - Open DevTools → Application → Cookies
+   - Look for: `csrf_token`, `XSRF-TOKEN`, or `_csrf`
+
+2. **Check cookie attributes**:
+   - Must have `HttpOnly: false` (so JavaScript can read it)
+   - Must have correct `Domain` and `Path`
+
+3. **Verify CORS configuration**:
+   - Backend must allow credentials: `Access-Control-Allow-Credentials: true`
+   - Frontend origin must be in `Access-Control-Allow-Origin`
+
+**Implementation details**: See `lib/csrf.ts` and `lib/api-client.ts`
+
+### Issue: PWA Not Installing
+
+**Error**: No install button appears in browser
+
+**Solution**:
+1. Verify HTTPS (PWA requires secure context)
+2. Check manifest file is served: `/manifest.webmanifest`
+3. Check service worker registered: DevTools → Application → Service Workers
+4. Verify icons exist: `/icon-192.png`, `/icon-512.png`
+5. Try clearing cache and reload
+
 ### Issue: Android Build Fails
 
 **Error**: EAS build fails
@@ -496,6 +533,39 @@ npx expo start -c
 
 ---
 
+## Deployment
+
+### PWA Deployment (Firebase Hosting)
+
+1. **Configure environment**:
+   ```bash
+   # Update .env.production with your backend URL
+   EXPO_PUBLIC_API_URL=https://your-backend.run.app
+   ```
+
+2. **Build the PWA**:
+   ```bash
+   npm run build:web:production
+   ```
+
+3. **Deploy to Firebase**:
+   ```bash
+   firebase deploy --only hosting
+   # Or use the deployment script:
+   ./scripts/deploy-pwa.sh
+   ```
+
+4. **Verify PWA installation**:
+   - Open deployed URL in Chrome/Edge
+   - Look for install icon in address bar
+   - Click to install as app
+
+### Cloud Build CI/CD (Optional)
+
+The repository includes `.github/workflows/deploy-pwa.yml` and `cloudbuild.yaml` for automated deployments on push to main branch.
+
+---
+
 ## Scripts
 
 ```json
@@ -504,6 +574,7 @@ npx expo start -c
   "web": "expo start --web",
   "android": "expo start --android",
   "build:web": "expo export:web",
+  "build:web:production": "expo export --platform web",
   "build:android": "eas build --platform android --profile production",
   "deploy:web": "./scripts/deploy-pwa.sh",
   "type-check": "tsc --noEmit",
@@ -570,7 +641,7 @@ For issues, questions, or contributions:
 
 ---
 
-**Current Status**: Phase 4 Complete - Core Features + MCP Integration (50% Complete)
-**Next Steps**: Phase 5 - PWA Deployment to Production
+**Current Status**: Phase 5 Complete - PWA Support + CSRF Implementation (65% Complete)
+**Next Steps**: Phase 6 - Android APK Build & Distribution
 
 **Last Updated**: November 10, 2025
