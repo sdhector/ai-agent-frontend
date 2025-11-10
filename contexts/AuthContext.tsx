@@ -52,9 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await getToken();
       if (!token) {
+        console.log('No token found, skipping auth check');
         setIsLoading(false);
         return;
       }
+
+      console.log('Token found, checking auth status');
 
       // Try to get user from storage first
       const userId = await getUserId();
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userPicture = await getUserPicture();
 
       if (userId && userEmail && userName) {
+        console.log('User data loaded from storage');
         setUser({
           id: userId,
           email: userEmail,
@@ -78,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
       if (response.ok) {
         const data = await response.json();
+        console.log('Auth status response:', data);
         const userData = {
           id: data.user.id,
           email: data.user.email,
@@ -98,7 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
-      await clearUserData();
+      // Only clear data if we had a token but got an error
+      const token = await getToken();
+      if (token) {
+        console.log('Clearing user data due to auth error');
+        await clearUserData();
+      }
     } finally {
       setIsLoading(false);
     }
