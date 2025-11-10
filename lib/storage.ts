@@ -35,52 +35,36 @@ const webStorage: StorageInterface = {
   },
 };
 
-// Native storage implementation
-const createNativeStorage = (): StorageInterface => {
-  // Only import on native platforms
-  const SecureStore = require('expo-secure-store');
-  
-  return {
-    async getItem(key: string): Promise<string | null> {
-      try {
-        if (key.includes('token') || key.includes('secret')) {
-          return await SecureStore.getItemAsync(key);
-        }
-        return await AsyncStorage.getItem(key);
-      } catch (error) {
-        console.error('Storage getItem error:', error);
-        return null;
-      }
-    },
-    async setItem(key: string, value: string): Promise<void> {
-      try {
-        if (key.includes('token') || key.includes('secret')) {
-          await SecureStore.setItemAsync(key, value);
-        } else {
-          await AsyncStorage.setItem(key, value);
-        }
-      } catch (error) {
-        console.error('Storage setItem error:', error);
-      }
-    },
-    async removeItem(key: string): Promise<void> {
-      try {
-        if (key.includes('token') || key.includes('secret')) {
-          await SecureStore.deleteItemAsync(key);
-        } else {
-          await AsyncStorage.removeItem(key);
-        }
-      } catch (error) {
-        console.error('Storage removeItem error:', error);
-      }
-    },
-  };
+// Native storage implementation using AsyncStorage only (SecureStore causes web bundle issues)
+const nativeStorage: StorageInterface = {
+  async getItem(key: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.error('Storage getItem error:', error);
+      return null;
+    }
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      console.error('Storage setItem error:', error);
+    }
+  },
+  async removeItem(key: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('Storage removeItem error:', error);
+    }
+  },
 };
 
 // Select storage based on platform
 const storage: StorageInterface = Platform.OS === 'web' 
   ? webStorage 
-  : createNativeStorage();
+  : nativeStorage;
 
 // Helper functions for common storage operations
 export const saveToken = (token: string) => storage.setItem(STORAGE_KEYS.JWT_TOKEN, token);
