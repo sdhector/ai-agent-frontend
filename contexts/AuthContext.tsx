@@ -132,8 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     if (Platform.OS === 'web') {
       // Web: Use full page redirect
-      // Add the frontend callback URL so backend knows where to redirect
-      const callbackUrl = `${window.location.origin}/(auth)/oauth-callback`;
+      // The backend should redirect to the root URL with a token parameter
+      // Our index.tsx will catch it and process the token
+      const callbackUrl = `${window.location.origin}`;
       const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(callbackUrl)}`;
       
       console.log('Redirecting to auth URL:', authUrl);
