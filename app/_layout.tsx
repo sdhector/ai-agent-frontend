@@ -1,9 +1,15 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useServiceWorker, usePWAInstall } from '@/hooks/useServiceWorker';
 import '../global.css';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // Prevent SSR hydration issues
 export const unstable_settings = {
@@ -57,9 +63,34 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  // Load Ionicons font
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+  });
+
   // Register service worker for PWA functionality
   useServiceWorker();
   usePWAInstall();
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      // Hide the splash screen after fonts are loaded or if there's an error
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors - splash screen may not be available on web
+      });
+    }
+  }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    if (fontError) {
+      console.error('Error loading fonts:', fontError);
+    }
+  }, [fontError]);
+
+  // Don't render app until fonts are loaded
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
     <AuthProvider>
