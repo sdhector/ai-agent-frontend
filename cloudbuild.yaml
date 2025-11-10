@@ -47,7 +47,7 @@ steps:
         firebase deploy --only hosting:ai-agent-frontend-462321 --project ${_FIREBASE_PROJECT_ID} --non-interactive
 
 substitutions:
-  _API_URL: 'https://ai-agent-backend-1025750725266.us-central1.run.app'
+  _API_URL: 'https://ai-agent-backend-tsgdvcezgq-uc.a.run.app'
   _FIREBASE_PROJECT_ID: 'professional-website-462321'
   
 options:
