@@ -1,7 +1,12 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS } from './constants';
+
+// Conditional import for SecureStore (only on native platforms)
+let SecureStore: any = null;
+if (Platform.OS !== 'web') {
+  SecureStore = require('expo-secure-store');
+}
 
 // Platform-specific storage
 const storage = Platform.select({
