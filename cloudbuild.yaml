@@ -1,16 +1,25 @@
 steps:
-  # Clean previous build artifacts
+  # Clean previous build artifacts and clear cache
   - name: 'node:18'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        rm -rf dist .expo
+        rm -rf dist .expo node_modules/.cache
         
   # Install dependencies
   - name: 'node:18'
     entrypoint: npm
     args: ['install', '--legacy-peer-deps']
+  
+  # Verify environment variables
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Building with EXPO_PUBLIC_API_URL=${_API_URL}"
+        echo "EXPO_PUBLIC_ENV=production"
     
   # Build PWA for production
   - name: 'node:18'
