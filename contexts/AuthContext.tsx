@@ -64,28 +64,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to fetch CSRF token from backend (this sets the cookie)
       // Only on web platform where CSRF tokens are needed
       if (Platform.OS === 'web') {
-        await fetchCSRFToken(API_BASE_URL);
+        try {
+          await fetchCSRFToken(API_BASE_URL);
+        } catch (csrfError) {
+          console.warn('[AUTH] Backend not reachable, clearing cached auth data');
+          await clearUserData();
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
       }
 
-      // Try to get user from storage first
+      // Try to get user from storage first - but verify with backend
       const userId = await getUserId();
       const userEmail = await getUserEmail();
       const userName = await getUserName();
       const userPicture = await getUserPicture();
 
-      if (userId && userEmail && userName) {
-        console.log('User data loaded from storage');
-        setUser({
-          id: userId,
-          email: userEmail,
-          name: userName,
-          picture: userPicture || undefined,
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Otherwise fetch from API
+      // Always verify with backend, don't trust cached data alone
       console.log('Fetching user data from backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
 
@@ -110,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await saveUserName(userData.name);
           if (userData.picture) await saveUserPicture(userData.picture);
 
-          console.log('User data saved to storage');
+          console.log('User data verified and saved to storage');
         } else {
           console.warn('No user data in response');
           await clearUserData();
@@ -124,13 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
-      // Only clear data if we had a token but got an error
-      const token = await getToken();
-      if (token) {
-        console.log('Clearing user data due to auth error');
-        await clearUserData();
-        setUser(null);
-      }
+      // Clear data on any error (backend unreachable or invalid token)
+      console.log('Clearing user data due to auth error');
+      await clearUserData();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }

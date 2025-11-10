@@ -4,7 +4,8 @@
   "description": "AI Agent Frontend - React Native PWA & Android APK",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
+    "prestart": "npm run clean:cache",
+    "start": "expo start --clear",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -18,7 +19,8 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test": "jest",
-    "clean": "rm -rf dist .expo"
+    "clean": "rm -rf dist .expo",
+    "clean:cache": "node -e \"const fs = require('fs'); const path = require('path'); const dirs = ['.expo', 'node_modules/.cache', '.cache']; dirs.forEach(d => { try { fs.rmSync(d, {recursive: true, force: true}); console.log('Cleaned:', d); } catch(e) {} });\""
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
