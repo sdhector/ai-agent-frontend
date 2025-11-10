@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { apiClient } from '@/lib/api-client';
 import { API_ENDPOINTS, API_BASE_URL } from '@/lib/constants';
+import { fetchCSRFToken } from '@/lib/csrf';
 import {
   saveToken,
   getToken,
@@ -60,6 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Token found, checking auth status');
 
+      // Try to fetch CSRF token from backend (this sets the cookie)
+      // Only on web platform where CSRF tokens are needed
+      if (Platform.OS === 'web') {
+        await fetchCSRFToken(API_BASE_URL);
+      }
+
       // Try to get user from storage first
       const userId = await getUserId();
       const userEmail = await getUserEmail();
@@ -81,13 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Otherwise fetch from API
       console.log('Fetching user data from backend:', `${API_BASE_URL}${API_ENDPOINTS.AUTH.STATUS}`);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.STATUS);
-      
+
       console.log('Auth status response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Auth status response data:', data);
-        
+
         if (data.user) {
           const userData = {
             id: data.user.id,
@@ -102,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await saveUserEmail(userData.email);
           await saveUserName(userData.name);
           if (userData.picture) await saveUserPicture(userData.picture);
-          
+
           console.log('User data saved to storage');
         } else {
           console.warn('No user data in response');
