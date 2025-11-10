@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { useServiceWorker, usePWAInstall } from '@/hooks/useServiceWorker';
 import '../global.css';
 
 // Prevent SSR hydration issues
@@ -56,6 +57,10 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  // Register service worker for PWA functionality
+  useServiceWorker();
+  usePWAInstall();
+
   return (
     <AuthProvider>
       <StatusBar style="auto" />

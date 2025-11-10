@@ -42,7 +42,9 @@
       "startUrl": "/",
       "scope": "/",
       "lang": "en",
-      "dir": "ltr"
+      "dir": "ltr",
+      "favicon": "./assets/icon.png",
+      "manifest": "./public/manifest.webmanifest"
     },
     "plugins": [
       "expo-router",
