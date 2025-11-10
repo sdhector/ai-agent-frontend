@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useServiceWorker, usePWAInstall } from '@/hooks/useServiceWorker';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import LoadingScreen from '@/components/LoadingScreen';
 import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
@@ -26,7 +28,7 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
-    const onIndexRoute = segments.length === 0 || segments[0] === 'index';
+    const onIndexRoute = !segments[0] || segments[0] === 'index';
 
     console.log('Root layout navigation:', {
       isAuthenticated,
@@ -87,15 +89,17 @@ export default function RootLayout() {
     }
   }, [fontError]);
 
-  // Don't render app until fonts are loaded
+  // Show loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
-    return null;
+    return <LoadingScreen message="Initializing app..." />;
   }
 
   return (
-    <AuthProvider>
-      <StatusBar style="auto" />
-      <RootLayoutNav />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <RootLayoutNav />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

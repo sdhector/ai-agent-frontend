@@ -63,15 +63,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Try to fetch CSRF token from backend (this sets the cookie)
       // Only on web platform where CSRF tokens are needed
+      // Use retry logic for CSRF token fetch
       if (Platform.OS === 'web') {
-        try {
-          await fetchCSRFToken(API_BASE_URL);
-        } catch (csrfError) {
-          console.warn('[AUTH] Backend not reachable, clearing cached auth data');
-          await clearUserData();
-          setUser(null);
-          setIsLoading(false);
-          return;
+        let csrfSuccess = false;
+        const maxRetries = 3;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            await fetchCSRFToken(API_BASE_URL);
+            csrfSuccess = true;
+            break;
+          } catch (csrfError) {
+            console.warn(`[AUTH] CSRF token fetch failed (attempt ${attempt}/${maxRetries}):`, csrfError);
+
+            if (attempt < maxRetries) {
+              // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+            }
+          }
+        }
+
+        // If all retries failed, try to use cached user data
+        if (!csrfSuccess) {
+          console.warn('[AUTH] Backend not reachable after retries, using cached auth data');
+          const userId = await getUserId();
+          const userEmail = await getUserEmail();
+          const userName = await getUserName();
+          const userPicture = await getUserPicture();
+
+          // If we have cached user data, use it temporarily
+          if (userId && userEmail && userName) {
+            setUser({
+              id: userId,
+              email: userEmail,
+              name: userName,
+              picture: userPicture || undefined,
+            });
+            setIsLoading(false);
+            console.log('[AUTH] Using cached user data (backend unreachable)');
+            return;
+          } else {
+            // No cached data and backend unreachable - clear and show login
+            console.warn('[AUTH] No cached data and backend unreachable - clearing auth');
+            await clearUserData();
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
@@ -112,18 +150,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await clearUserData();
           setUser(null);
         }
-      } else {
-        console.warn('Auth status check failed:', response.status);
-        // Token invalid, clear it
+      } else if (response.status === 401 || response.status === 403) {
+        // Only clear on actual auth failures
+        console.warn('Auth check failed with 401/403 - token invalid, clearing data');
         await clearUserData();
         setUser(null);
+      } else {
+        // Other errors (5xx, network) - keep cached data if available
+        console.warn('Auth status check failed with status:', response.status);
+        if (userId && userEmail && userName) {
+          console.log('Using cached user data due to backend error');
+          setUser({
+            id: userId,
+            email: userEmail,
+            name: userName,
+            picture: userPicture || undefined,
+          });
+        } else {
+          await clearUserData();
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
-      // Clear data on any error (backend unreachable or invalid token)
-      console.log('Clearing user data due to auth error');
-      await clearUserData();
-      setUser(null);
+
+      // Try to use cached data instead of immediately clearing
+      const userId = await getUserId();
+      const userEmail = await getUserEmail();
+      const userName = await getUserName();
+      const userPicture = await getUserPicture();
+
+      if (userId && userEmail && userName) {
+        console.log('Using cached user data due to error');
+        setUser({
+          id: userId,
+          email: userEmail,
+          name: userName,
+          picture: userPicture || undefined,
+        });
+      } else {
+        // No cached data - clear everything
+        console.log('No cached data available, clearing auth data');
+        await clearUserData();
+        setUser(null);
+      }
     } finally {
       setIsLoading(false);
     }
