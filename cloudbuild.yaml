@@ -30,7 +30,7 @@ steps:
       - '-c'
       - |
         echo "Starting production build with cache clear..."
-        npx expo export --platform web --clear
+        npx expo export --platform web --output-dir dist --clear
     env:
       - 'EXPO_PUBLIC_API_URL=${_API_URL}'
       - 'EXPO_PUBLIC_APP_NAME=AI Agent'

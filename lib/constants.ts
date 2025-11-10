@@ -4,20 +4,51 @@ import Constants from 'expo-constants';
 // Get API URL from environment variables or use default
 // In production, EXPO_PUBLIC_API_URL should be set in .env.production
 const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+const expoConfigApiUrl = Constants.expoConfig?.extra?.apiUrl;
+const isDevelopment = __DEV__;
+const isProduction = process.env.EXPO_PUBLIC_ENV === 'production';
 
-export const API_BASE_URL = Platform.select({
-  web: envApiUrl || Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8080',
+// Validate API URL configuration
+const validateApiUrl = (url: string | undefined): string => {
+  // In production, require a valid API URL (not localhost)
+  if (isProduction && (!url || url.includes('localhost') || url.includes('127.0.0.1'))) {
+    console.error('❌ CRITICAL: Production build missing valid API URL!');
+    console.error('EXPO_PUBLIC_API_URL must be set to a valid backend URL');
+    console.error('Current value:', url || 'undefined');
+
+    // In production web, throw error to prevent deployment with wrong config
+    if (Platform.OS === 'web') {
+      throw new Error(
+        'Production deployment missing API URL. Set EXPO_PUBLIC_API_URL environment variable.'
+      );
+    }
+  }
+
+  // Warn in development if using default localhost
+  if (isDevelopment && !url) {
+    console.warn('⚠️  Using default localhost API URL (development mode)');
+  }
+
+  return url || 'http://localhost:8080';
+};
+
+const rawApiUrl = Platform.select({
+  web: envApiUrl || expoConfigApiUrl || 'http://localhost:8080',
   default: envApiUrl || 'http://localhost:8080',
   // For local development with Android emulator:
   // android: 'http://10.0.2.2:8080',
 });
 
+export const API_BASE_URL = validateApiUrl(rawApiUrl);
+
 // Log the API URL for debugging
 console.log('API Configuration:', {
   platform: Platform.OS,
+  environment: isProduction ? 'production' : 'development',
   envApiUrl,
+  expoConfigApiUrl,
   API_BASE_URL,
-  expoConfigApiUrl: Constants.expoConfig?.extra?.apiUrl,
+  isValid: !API_BASE_URL.includes('localhost') || isDevelopment,
 });
 
 // API Endpoints

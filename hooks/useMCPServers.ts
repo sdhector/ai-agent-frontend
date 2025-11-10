@@ -49,7 +49,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
   const fetchServers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get<ServerListResponse>(API_ENDPOINTS.MCP.SERVERS);
+      const response = await apiClient.get(API_ENDPOINTS.MCP.SERVERS);
       const data = await response.json();
 
       if (data.success && data.servers) {
@@ -74,7 +74,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
   const connectServer = useCallback(async (serverId: string) => {
     setIsConnecting(true);
     try {
-      const response = await apiClient.post<ConnectServerResponse>(
+      const response = await apiClient.post(
         API_ENDPOINTS.MCP.CONNECT(serverId),
         {}
       );
@@ -128,7 +128,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
    */
   const handleOAuthCallback = useCallback(async (code: string, state: string) => {
     try {
-      const response = await apiClient.post<any>(
+      const response = await apiClient.post(
         API_ENDPOINTS.MCP.OAUTH_CALLBACK,
         { code, state } as OAuthCallbackRequest
       );
@@ -207,7 +207,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
    */
   const fetchTools = useCallback(async (serverId: string): Promise<MCPTool[]> => {
     try {
-      const response = await apiClient.get<ToolsResponse>(
+      const response = await apiClient.get(
         API_ENDPOINTS.MCP.TOOLS(serverId)
       );
       const data = await response.json();
@@ -232,7 +232,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
   const executeTool = useCallback(async (request: ExecuteToolRequest): Promise<any> => {
     setIsExecuting(true);
     try {
-      const response = await apiClient.post<ExecuteToolResponse>(
+      const response = await apiClient.post(
         API_ENDPOINTS.MCP.EXECUTE,
         request
       );
