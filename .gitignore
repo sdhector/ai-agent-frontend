@@ -6,6 +6,10 @@ node_modules/
 dist/
 web-build/
 
+# Generated icons (intermediate SVG files)
+assets/*.svg
+public/*.svg
+
 # Native
 *.orig.*
 *.jks
