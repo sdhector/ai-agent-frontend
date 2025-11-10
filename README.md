@@ -100,8 +100,8 @@ This is a React Native application built with Expo that can deploy to:
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/ai-assistant-frontend.git
-cd ai-assistant-frontend
+git clone https://github.com/sdhector/ai-agent-frontend.git
+cd ai-agent-frontend
 ```
 
 ### 2. Install Dependencies
@@ -558,14 +558,14 @@ This project is licensed under the ISC License.
 
 ## Related Repositories
 
-- **Backend**: https://github.com/yourusername/ai-assistant-backend (Express.js API)
+- **Backend**: https://github.com/sdhector/ai-agent-backend (Express.js API)
 
 ---
 
 ## Support
 
 For issues, questions, or contributions:
-- **GitHub Issues**: https://github.com/yourusername/ai-assistant-frontend/issues
+- **GitHub Issues**: https://github.com/sdhector/ai-agent-frontend/issues
 - **Migration Guide**: See `/react-native-migration-guide/` in original repository
 
 ---
