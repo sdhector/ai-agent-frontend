@@ -1,0 +1,29 @@
+steps:
+  # Install dependencies
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['install']
+    
+  # Build PWA for production
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['run', 'build:web:production']
+    env:
+      - 'EXPO_PUBLIC_API_URL=${_API_URL}'
+      - 'EXPO_PUBLIC_APP_NAME=AI Agent'
+      - 'EXPO_PUBLIC_APP_VERSION=1.0.0'
+      - 'EXPO_PUBLIC_ENV=production'
+    
+  # Deploy to Firebase Hosting
+  - name: 'gcr.io/professional-website-462321/firebase'
+    args: ['deploy', '--only', 'hosting', '--project', '${_FIREBASE_PROJECT_ID}']
+    
+substitutions:
+  _API_URL: 'https://ai-agent-backend-xyz.run.app'  # Update with actual backend URL
+  _FIREBASE_PROJECT_ID: 'professional-website-462321'
+  
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  
+timeout: '1200s'
