@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "ai-agent-frontend-462321",
     "public": "dist",
     "ignore": [
       "firebase.json",
