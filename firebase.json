@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "target": "ai-agent",
     "public": "dist",
     "ignore": [
       "firebase.json",
