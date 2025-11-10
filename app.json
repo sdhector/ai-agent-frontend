@@ -32,7 +32,6 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png",
       "name": "AI Agent",
       "shortName": "AI Agent",
       "description": "AI-powered agent with chat, conversation management, and MCP integration",

@@ -1,5 +1,12 @@
 {
   "projects": {
-    "default": "your-firebase-project-id"
+    "default": "professional-website-462321"
+  },
+  "targets": {
+    "professional-website-462321": {
+      "hosting": {
+        "ai-agent": ["ai-agent-frontend-462321"]
+      }
+    }
   }
 }
