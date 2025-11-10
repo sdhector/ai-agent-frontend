@@ -4,6 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import '../global.css';
 
+// Prevent SSR hydration issues
+export const unstable_settings = {
+  initialRouteName: '(auth)',
+};
+
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
