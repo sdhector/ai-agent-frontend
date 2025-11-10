@@ -1,4 +1,12 @@
 steps:
+  # Clean previous build artifacts
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        rm -rf dist .expo
+        
   # Install dependencies
   - name: 'node:18'
     entrypoint: npm
