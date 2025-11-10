@@ -19,6 +19,7 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
+    const onIndexRoute = segments.length === 0 || segments[0] === 'index';
 
     console.log('Root layout navigation:', {
       isAuthenticated,
@@ -26,7 +27,13 @@ function RootLayoutNav() {
       segments,
       inAuthGroup,
       inTabsGroup,
+      onIndexRoute,
     });
+
+    // Don't redirect if on index route - it handles its own navigation
+    if (onIndexRoute) {
+      return;
+    }
 
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated and not already in auth flow
