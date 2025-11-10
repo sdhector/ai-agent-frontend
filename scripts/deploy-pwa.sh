@@ -62,7 +62,7 @@ firebase login:ci --no-localhost || firebase login
 
 echo ""
 echo "🚀 Step 6: Deploying to Firebase Hosting..."
-firebase deploy --only hosting
+firebase deploy --only hosting:ai-agent
 
 echo ""
 echo "✅ Deployment Complete!"
