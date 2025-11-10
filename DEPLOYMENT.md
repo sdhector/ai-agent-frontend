@@ -1,6 +1,6 @@
 # PWA Deployment Guide
 
-This guide explains how to deploy the AI Assistant PWA to Firebase Hosting.
+This guide explains how to deploy the AI Assistant PWA to Firebase Hosting using **Cloud Build** for CI/CD.
 
 ## Prerequisites
 
@@ -9,8 +9,9 @@ This guide explains how to deploy the AI Assistant PWA to Firebase Hosting.
    ```bash
    npm install -g firebase-tools
    ```
-3. **Firebase Project**: Create a project at [Firebase Console](https://console.firebase.google.com/)
+3. **Firebase Project**: `professional-website-462321` (already configured)
 4. **Backend Deployed**: Your backend must be deployed and accessible (e.g., on Cloud Run)
+5. **GCP Project**: `professional-website-462321`
 
 ## Initial Setup
 
@@ -297,6 +298,138 @@ firebase hosting:clone --list
 
 # Rollback to specific deployment
 firebase hosting:clone <source-site-id>:<source-deployment-id> <target-site-id>:live
+```
+
+## Cloud Build Deployment (CI/CD)
+
+### Overview
+
+This repository includes `cloudbuild.yaml` for automated deployment using Google Cloud Build instead of GitHub Actions.
+
+### Step 1: Build Firebase Docker Image (One-Time Setup)
+
+Cloud Build needs a custom Docker image with Firebase CLI:
+
+```powershell
+# 1. Create Dockerfile for Firebase
+cd path/to/ai-agent-frontend
+
+@"
+FROM node:18
+RUN npm install -g firebase-tools
+ENTRYPOINT ["firebase"]
+"@ | Set-Content Dockerfile.firebase
+
+# 2. Build and push to GCR
+gcloud builds submit --tag gcr.io/professional-website-462321/firebase -f Dockerfile.firebase .
+
+# 3. Verify
+gcloud container images list --repository=gcr.io/professional-website-462321
+```
+
+### Step 2: Create Firebase CI Token
+
+```powershell
+# Generate CI token
+firebase login:ci
+```
+
+**Copy the token** that appears.
+
+### Step 3: Store Token in Secret Manager
+
+```powershell
+# Create secret
+echo "YOUR-FIREBASE-CI-TOKEN" | gcloud secrets create firebase-ci-token --data-file=- --project=professional-website-462321
+
+# Grant Cloud Build access
+gcloud secrets add-iam-policy-binding firebase-ci-token `
+  --member="serviceAccount:1025750725266@cloudbuild.gserviceaccount.com" `
+  --role="roles/secretmanager.secretAccessor" `
+  --project=professional-website-462321
+```
+
+### Step 4: Update cloudbuild.yaml
+
+Edit `cloudbuild.yaml` and update the backend URL:
+
+```yaml
+substitutions:
+  _API_URL: 'https://YOUR-ACTUAL-BACKEND-URL.run.app'  # UPDATE THIS!
+  _FIREBASE_PROJECT_ID: 'professional-website-462321'
+```
+
+The complete `cloudbuild.yaml` should look like:
+
+```yaml
+steps:
+  # Install dependencies
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['install']
+    
+  # Build PWA for production
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['run', 'build:web:production']
+    env:
+      - 'EXPO_PUBLIC_API_URL=${_API_URL}'
+      - 'EXPO_PUBLIC_APP_NAME=AI Agent'
+      - 'EXPO_PUBLIC_APP_VERSION=1.0.0'
+      - 'EXPO_PUBLIC_ENV=production'
+    
+  # Deploy to Firebase Hosting
+  - name: 'gcr.io/professional-website-462321/firebase'
+    args: ['deploy', '--only', 'hosting', '--project', '${_FIREBASE_PROJECT_ID}', '--token', '$$FIREBASE_TOKEN']
+    secretEnv: ['FIREBASE_TOKEN']
+    
+availableSecrets:
+  secretManager:
+  - versionName: projects/professional-website-462321/secrets/firebase-ci-token/versions/latest
+    env: 'FIREBASE_TOKEN'
+
+substitutions:
+  _API_URL: 'https://YOUR-BACKEND-URL.run.app'  # UPDATE THIS!
+  _FIREBASE_PROJECT_ID: 'professional-website-462321'
+  
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  
+timeout: '1200s'
+```
+
+### Step 5: Manual Cloud Build Deployment
+
+```powershell
+# Deploy via Cloud Build
+gcloud builds submit --config cloudbuild.yaml --project professional-website-462321
+```
+
+### Step 6: Set Up Automatic Deployment (Optional)
+
+Create a trigger that deploys on every push to master:
+
+```powershell
+gcloud builds triggers create github `
+  --name="deploy-frontend-pwa" `
+  --repo-name="ai-agent-frontend" `
+  --repo-owner="sdhector" `
+  --branch-pattern="^master$" `
+  --build-config="cloudbuild.yaml" `
+  --project=professional-website-462321
+```
+
+Now every push to `master` automatically builds and deploys!
+
+### View Cloud Build Logs
+
+```powershell
+# List recent builds
+gcloud builds list --project professional-website-462321 --limit 5
+
+# View specific build log
+gcloud builds log BUILD_ID --project professional-website-462321
 ```
 
 ## Security
