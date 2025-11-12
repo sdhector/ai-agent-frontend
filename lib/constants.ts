@@ -58,7 +58,7 @@ export const API_ENDPOINTS = {
     LOGOUT: '/api/auth/logout',
   },
   AI: {
-    CHAT: '/api/ai',
+    CHAT: '/api/ai/chat',
     MODELS: '/api/ai/models',
   },
   CONVERSATIONS: {

@@ -31,12 +31,28 @@ export function useChat(options: UseChatOptions = {}) {
     setIsLoading(true);
 
     try {
-      // Prepare request body
+      // Prepare messages array - include conversation history + new user message
+      const userMessageObj = {
+        role: 'user',
+        content: content.trim(),
+      };
+
+      // Build messages array from conversation history
+      const messagesArray = [
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        userMessageObj,
+      ];
+
+      // Prepare request body matching backend API requirements
       const requestBody = {
-        message: content.trim(),
-        provider: DEFAULT_PROVIDER,
-        model: selectedModel,
-        conversationId: currentConversationId,
+        messages: messagesArray,
+        model: 'claude-sonnet-4-5',
+        temperature: 0.7,
+        max_tokens: 1000,
+        stream: true,
       };
 
       // Send request to backend
