@@ -3,14 +3,14 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { useServiceWorker, usePWAInstall } from '@/hooks/useServiceWorker';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import LoadingScreen from '@/components/LoadingScreen';
 import '../global.css';
 
-// Note: SplashScreen is handled in _layout.native.tsx for native platforms
-// On web, we don't use expo-splash-screen to avoid module registration issues
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // Prevent SSR hydration issues
 export const unstable_settings = {
@@ -69,12 +69,14 @@ export default function RootLayout() {
     ...Ionicons.font,
   });
 
-  // Register service worker for PWA functionality
-  useServiceWorker();
-  usePWAInstall();
-
-  // Note: SplashScreen hiding is handled in _layout.native.tsx
-  // On web, we just show the LoadingScreen component instead
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      // Hide the splash screen after fonts are loaded or if there's an error
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors - splash screen may not be available
+      });
+    }
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     if (fontError) {
@@ -96,3 +98,4 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
