@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -9,8 +8,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import LoadingScreen from '@/components/LoadingScreen';
 import '../global.css';
 
-// Note: SplashScreen is handled in _layout.native.tsx for native platforms
-// On web, we don't use expo-splash-screen to avoid module registration issues
+// Note: SplashScreen and StatusBar are handled in _layout.native.tsx for native platforms
+// On web, we don't use expo-splash-screen or expo-status-bar to avoid module registration issues
 
 // Prevent SSR hydration issues
 export const unstable_settings = {
@@ -90,7 +89,6 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <StatusBar style="auto" />
         <RootLayoutNav />
       </AuthProvider>
     </ErrorBoundary>
