@@ -72,12 +72,13 @@ export function useChat(options: UseChatOptions = {}) {
 
       let assistantMessageId = (Date.now() + 1).toString();
       let accumulatedContent = '';
+      let hasReceivedContent = false;
 
       // Add initial assistant message
       const assistantMessage: MessageData = {
         id: assistantMessageId,
         role: 'assistant',
-        content: '',
+        content: '...',
         timestamp: new Date(),
         isStreaming: true,
       };
@@ -85,57 +86,110 @@ export function useChat(options: UseChatOptions = {}) {
       setMessages((prev) => [...prev, assistantMessage]);
 
       // Read stream
+      let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        // Decode chunk and add to buffer (handle incomplete SSE events)
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim();
 
-            if (data === '[DONE]') {
-              break;
+            if (!data || data === '[DONE]') {
+              if (data === '[DONE]') {
+                console.log('[Chat] Received [DONE] signal');
+              }
+              continue;
             }
 
             try {
               const parsed = JSON.parse(data);
+              console.log('[Chat] Received SSE event:', parsed.type || 'unknown', parsed);
 
               // Handle conversation ID
               if (parsed.conversationId && !currentConversationId) {
                 setCurrentConversationId(parsed.conversationId);
               }
 
-              // Handle content delta
-              if (parsed.delta) {
-                accumulatedContent += parsed.delta;
+              // Handle content chunks - backend sends { type: 'content', text: '...' }
+              if (parsed.type === 'content' && parsed.text !== undefined) {
+                hasReceivedContent = true;
+                accumulatedContent += parsed.text || '';
+                console.log('[Chat] Accumulated content length:', accumulatedContent.length, 'text:', parsed.text?.substring(0, 50));
 
                 // Update assistant message
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent }
+                      ? { ...msg, content: accumulatedContent || '...', isStreaming: true }
+                      : msg
+                  )
+                );
+              } 
+              // Handle legacy format with delta (for compatibility)
+              else if (parsed.delta) {
+                accumulatedContent += parsed.delta;
+                console.log('[Chat] Accumulated content length (delta):', accumulatedContent.length);
+
+                // Update assistant message
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: accumulatedContent, isStreaming: true }
                       : msg
                   )
                 );
               }
+              // Handle other event types (status, tool_start, tool_end, etc.)
+              else if (parsed.type) {
+                if (parsed.type === 'metadata' || parsed.type === 'done') {
+                  console.log('[Chat] Received', parsed.type, 'event');
+                } else {
+                  console.log('[Chat] Received event:', parsed.type, parsed);
+                }
+              } else {
+                console.warn('[Chat] Unknown event format:', parsed);
+              }
             } catch (e) {
-              console.error('Error parsing SSE data:', e);
+              console.error('[Chat] Error parsing SSE data:', e, 'Data:', data);
             }
+          } else if (line.trim()) {
+            // Log non-data lines for debugging
+            console.log('[Chat] Non-data line:', line);
           }
         }
+      }
+      
+      // Process any remaining buffer
+      if (buffer.trim()) {
+        console.log('[Chat] Processing remaining buffer:', buffer);
       }
 
       // Mark streaming as complete
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? { ...msg, isStreaming: false }
-            : msg
-        )
+        prev.map((msg) => {
+          if (msg.id === assistantMessageId) {
+            // If no content was received, show an error message
+            if (!hasReceivedContent || !accumulatedContent.trim()) {
+              console.warn('[Chat] No content received in stream');
+              return {
+                ...msg,
+                content: 'Sorry, I didn\'t receive a response. Please try again.',
+                isStreaming: false
+              };
+            }
+            return { ...msg, isStreaming: false };
+          }
+          return msg;
+        })
       );
     } catch (error) {
       console.error('Error sending message:', error);

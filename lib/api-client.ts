@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './constants';
 import { getToken } from './storage';
-import { getCSRFToken } from './csrf';
+import { getCSRFToken, fetchCSRFToken } from './csrf';
 
 interface FetchOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -34,7 +34,18 @@ export class APIClient {
     // Add CSRF token for state-changing methods
     const method = (fetchOptions.method || 'GET').toUpperCase();
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-      const csrfToken = getCSRFToken();
+      let csrfToken = getCSRFToken();
+      
+      // If no CSRF token, try to fetch it from backend
+      if (!csrfToken) {
+        try {
+          console.log('[API Client] No CSRF token found, fetching from backend...');
+          csrfToken = await fetchCSRFToken(this.baseUrl);
+        } catch (error) {
+          console.warn('[API Client] Failed to fetch CSRF token:', error);
+        }
+      }
+      
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
         console.log('[API Client] Including CSRF token in request');
