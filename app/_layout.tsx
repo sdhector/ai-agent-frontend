@@ -1,17 +1,42 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
-import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useServiceWorker, usePWAInstall } from '@/hooks/useServiceWorker';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import LoadingScreen from '@/components/LoadingScreen';
 import '../global.css';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+// Only use SplashScreen on native platforms (causes module registration issues on web static export)
+// Using dynamic require to avoid module registration issues with Expo's static export
+const getSplashScreen = () => {
+  if (typeof window !== 'undefined') {
+    // On web, return no-op functions
+    return {
+      preventAutoHideAsync: () => Promise.resolve(),
+      hideAsync: () => Promise.resolve(),
+    };
+  }
+  try {
+    // Only require on native platforms
+    return require('expo-splash-screen');
+  } catch (error) {
+    // Fallback if module not available
+    return {
+      preventAutoHideAsync: () => Promise.resolve(),
+      hideAsync: () => Promise.resolve(),
+    };
+  }
+};
+
+const SplashScreen = getSplashScreen();
+// Keep the splash screen visible while we fetch resources (only on native)
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 // Prevent SSR hydration issues
 export const unstable_settings = {
@@ -77,9 +102,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       // Hide the splash screen after fonts are loaded or if there's an error
-      SplashScreen.hideAsync().catch(() => {
-        // Ignore errors - splash screen may not be available on web
-      });
+      // Only on native platforms (web doesn't use splash screen)
+      if (SplashScreen && Platform.OS !== 'web') {
+        SplashScreen.hideAsync().catch(() => {
+          // Ignore errors - splash screen may not be available
+        });
+      }
     }
   }, [fontsLoaded, fontError]);
 
