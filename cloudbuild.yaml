@@ -42,8 +42,7 @@ steps:
       - '-c'
       - |
         echo "=== STARTING PRODUCTION BUILD ==="
-        export BUILD_TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-        echo "Build timestamp: $BUILD_TIMESTAMP"
+        echo "Build timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 
         # Clear metro bundler cache
         npx expo export --platform web --output-dir dist --clear --max-workers 4
