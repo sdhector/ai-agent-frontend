@@ -8,6 +8,17 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
+/**
+ * MessageInput Component
+ *
+ * Provides a multiline text input for composing messages with send functionality.
+ *
+ * Keyboard shortcuts (web only):
+ * - Enter: Send message
+ * - Shift+Enter: New line
+ *
+ * On mobile, uses onSubmitEditing for sending.
+ */
 export function MessageInput({ onSend, disabled, placeholder = 'Type a message...' }: MessageInputProps) {
   const [message, setMessage] = useState('');
 
