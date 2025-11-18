@@ -10,6 +10,7 @@ interface FetchOptions extends RequestInit {
 
 export class APIClient {
   private baseUrl: string;
+  private pendingRequests: Map<string, Promise<Response>> = new Map();
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -17,6 +18,17 @@ export class APIClient {
 
   async fetch(endpoint: string, options: FetchOptions = {}) {
     const { requiresAuth = true, retries = 0, retryDelay = 1000, ...fetchOptions } = options;
+
+    // Create a unique key for this request (endpoint + method)
+    // Only deduplicate GET requests to avoid issues with POST/PUT/DELETE
+    const method = (fetchOptions.method || 'GET').toUpperCase();
+    const requestKey = method === 'GET' ? `${method}:${endpoint}` : null;
+
+    // If this is a GET request and we already have a pending request, return it
+    if (requestKey && this.pendingRequests.has(requestKey)) {
+      console.log(`[API Client] Deduplicating request: ${requestKey}`);
+      return this.pendingRequests.get(requestKey)!;
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -56,60 +68,74 @@ export class APIClient {
 
     const url = `${this.baseUrl}${endpoint}`;
 
-    // Retry logic with exponential backoff
-    let lastError: Error | null = null;
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        if (attempt > 0) {
-          // Calculate exponential backoff delay: retryDelay * 2^(attempt-1)
-          const delay = retryDelay * Math.pow(2, attempt - 1);
-          console.log(`[API Client] Retrying request (attempt ${attempt}/${retries}) after ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+    // Create the request promise and store it if this is a GET request
+    const requestPromise = (async () => {
+      // Retry logic with exponential backoff
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          if (attempt > 0) {
+            // Calculate exponential backoff delay: retryDelay * 2^(attempt-1)
+            const delay = retryDelay * Math.pow(2, attempt - 1);
+            console.log(`[API Client] Retrying request (attempt ${attempt}/${retries}) after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
 
-        const response = await fetch(url, {
-          ...fetchOptions,
-          headers,
-          credentials: 'include', // Important: include cookies for CSRF/session
-        });
+          const response = await fetch(url, {
+            ...fetchOptions,
+            headers,
+            credentials: 'include', // Important: include cookies for CSRF/session
+          });
 
-        // Don't retry on client errors (4xx) except 408 (timeout) and 429 (rate limit)
-        if (!response.ok) {
-          const shouldRetry =
-            attempt < retries &&
-            (response.status >= 500 || // Server errors
-             response.status === 408 || // Request timeout
-             response.status === 429);  // Too many requests
+          // Don't retry on client errors (4xx) except 408 (timeout)
+          // Note: 429 (rate limit) should NOT be retried immediately as it will make the problem worse
+          if (!response.ok) {
+            const shouldRetry =
+              attempt < retries &&
+              (response.status >= 500 || // Server errors
+               response.status === 408); // Request timeout
 
-          if (!shouldRetry) {
-            const errorText = await response.text();
-            throw new Error(`API Error ${response.status}: ${errorText || response.statusText}`);
-          } else {
-            // Log and continue to retry
-            console.warn(`[API Client] Request failed with status ${response.status}, will retry...`);
-            lastError = new Error(`API Error ${response.status}: ${response.statusText}`);
+            if (!shouldRetry) {
+              const errorText = await response.text();
+              throw new Error(`API Error ${response.status}: ${errorText || response.statusText}`);
+            } else {
+              // Log and continue to retry
+              console.warn(`[API Client] Request failed with status ${response.status}, will retry...`);
+              lastError = new Error(`API Error ${response.status}: ${response.statusText}`);
+              continue;
+            }
+          }
+
+          return response;
+        } catch (error) {
+          lastError = error as Error;
+
+          // Network errors are retryable
+          if (attempt < retries) {
+            console.warn(`[API Client] Request failed (attempt ${attempt + 1}/${retries + 1}):`, error);
             continue;
           }
+
+          // All retries exhausted
+          console.error('API Client Error (all retries exhausted):', error);
+          throw error;
         }
-
-        return response;
-      } catch (error) {
-        lastError = error as Error;
-
-        // Network errors are retryable
-        if (attempt < retries) {
-          console.warn(`[API Client] Request failed (attempt ${attempt + 1}/${retries + 1}):`, error);
-          continue;
-        }
-
-        // All retries exhausted
-        console.error('API Client Error (all retries exhausted):', error);
-        throw error;
-      }
     }
 
     // This should never be reached, but TypeScript needs it
     throw lastError || new Error('Unknown error occurred');
+    })();
+
+    // Store the promise for GET requests to enable deduplication
+    if (requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+      // Clean up after the request completes (success or failure)
+      requestPromise.finally(() => {
+        this.pendingRequests.delete(requestKey);
+      });
+    }
+
+    return requestPromise;
   }
 
   async get(endpoint: string, options?: FetchOptions) {
