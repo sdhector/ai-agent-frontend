@@ -44,7 +44,6 @@ export class APIClient {
     }
 
     // Add CSRF token for state-changing methods
-    const method = (fetchOptions.method || 'GET').toUpperCase();
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
       let csrfToken = getCSRFToken();
       
