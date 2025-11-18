@@ -46,12 +46,16 @@ git clone --no-checkout --no-hardlinks --depth 1 file:///C:/Users/Hector's PC/..
 exited with non-zero code: 128
 ```
 
-**Workaround Applied**:
-- Created copy of project at `C:\dev\ai-agent-frontend` (no spaces)
-- Use `EAS_NO_VCS='1'` environment variable to bypass git clone
-- **Note**: This is a temporary workaround, not a permanent solution
+**⚠️ IMPORTANT - Fix Priority**:
+1. **FIRST**: Attempt to fix/build from the original location (`C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`)
+2. **ONLY IF** the path with spaces is confirmed as an obstacle, then consider the workaround location
 
-**Status**: ⚠️ Workaround works but not ideal
+**Workaround Location (Last Resort Only)**:
+- Copy of project at `C:\dev\ai-agent-frontend` (no spaces)
+- Use `EAS_NO_VCS='1'` environment variable to bypass git clone
+- **Note**: This is a temporary workaround, only use if original location cannot be fixed
+
+**Status**: ⚠️ Workaround available but should be avoided - fix original location first
 
 ### 2. Android Local Build - Path Resolution Issue
 **Problem**: When building locally with Gradle, the build system still references `node_modules` from the original location with spaces, causing:
@@ -109,9 +113,14 @@ cd android
 
 #### Android EAS Build (Future)
 ```bash
-# From C:\dev\ai-agent-frontend (workaround location)
-$env:EAS_NO_VCS='1'
+# FIRST: Try from original location
+cd "C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend"
 npx eas-cli build --platform android --profile preview
+
+# ONLY IF that fails due to path issues, use workaround:
+# cd C:\dev\ai-agent-frontend
+# $env:EAS_NO_VCS='1'
+# npx eas-cli build --platform android --profile preview
 ```
 
 ---
@@ -126,14 +135,15 @@ C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent
 - **Git**: Main repository
 - **Use for**: Development, PWA builds
 
-### Workaround Location (No Spaces)
+### Workaround Location (No Spaces) - OPTIONAL/LAST RESORT
 ```
 C:\dev\ai-agent-frontend
 ```
-- **Status**: ✅ Created to work around Windows path issues
+- **Status**: ⚠️ Available but should be avoided
 - **Git**: Points to original location (needs fixing)
-- **Use for**: EAS builds (with `EAS_NO_VCS='1'`)
-- **Note**: This is a **temporary workaround**, not a permanent solution
+- **Use for**: Only if original location cannot be fixed
+- **Note**: This is a **temporary workaround** - attempt to fix original location first
+- **Decision**: Only use this location if you've confirmed the path with spaces is the actual obstacle
 
 ---
 
@@ -141,23 +151,36 @@ C:\dev\ai-agent-frontend
 
 ### High Priority
 
-1. **Fix Git Repository in Workaround Location**
+1. **Fix Android Build from Original Location** ⭐ **DO THIS FIRST**
+   - **Goal**: Make Android builds work from `C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`
+   - **Approach**: 
+     - Attempt local Gradle build from original location
+     - If path length issues occur, try workarounds (shortened paths, etc.)
+     - Only use workaround location if original location is confirmed as unfixable
+   - **Status**: ⏳ Primary goal - fix original location first
+
+2. **Fix Git Repository in Workaround Location** (Only if workaround is needed)
    - **Issue**: `C:\dev\ai-agent-frontend` git still points to original location
    - **Impact**: Local Android builds fail due to path resolution
    - **Solution**: 
      - Remove `.git` from `C:\dev\ai-agent-frontend`
      - Initialize new git repo or properly clone from remote
      - Ensure `git rev-parse --show-toplevel` returns `C:/dev/ai-agent-frontend`
+   - **Note**: Only do this if you've decided the workaround location is necessary
 
 2. **Verify PWA Still Works**
    - **Action**: Test PWA build and runtime after all Android build troubleshooting
    - **Command**: `npm run build:web` then test locally
    - **Status**: ⏳ Pending verification
 
-3. **Test Local Android Build from Original Location**
+3. **Test Local Android Build from Original Location** ⭐ **PRIORITY**
    - **Goal**: Verify if local Gradle build works from original location (with spaces)
-   - **Rationale**: If it works, we can eliminate the workaround location
-   - **Status**: ⏳ Future task
+   - **Rationale**: If it works, we can eliminate the workaround location entirely
+   - **Approach**: 
+     - Try `npx expo prebuild --platform android --clean` from original location
+     - Try `cd android && .\gradlew.bat assembleRelease` from original location
+     - Document any errors and attempt to fix them
+   - **Status**: ⏳ **DO THIS FIRST** - Primary task
 
 ### Medium Priority
 
@@ -267,15 +290,25 @@ After making a code change, we should be able to:
 
 ## 🎯 Next Steps
 
-1. ✅ Document current state (this document)
-2. ⏳ Fix git repository in `C:\dev\ai-agent-frontend`
-3. ⏳ Complete local Android build successfully
+### Priority Order
+
+1. ✅ Document current state (this document) - **DONE**
+2. ⭐ **Test local Android build from original location** - **DO THIS FIRST**
+   - Try building from `C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`
+   - Document any errors
+   - Attempt to fix issues in original location
+3. ⏳ Complete local Android build successfully (from original location if possible)
 4. ⏳ Verify PWA still works
-5. ⏳ Test local build from original location
-6. ⏳ Fix EAS cloud builds
-7. ⏳ Create robust build scripts
-8. ⏳ Clean up old documentation
-9. ⏳ Rename app to "SanDi"
+5. ⏳ Fix EAS cloud builds (from original location if possible)
+6. ⏳ Create robust build scripts
+7. ⏳ Clean up old documentation - **DONE**
+8. ⏳ Rename app to "SanDi"
+
+### Workaround Location (Only if needed)
+
+- ⚠️ **ONLY** if original location is confirmed as unfixable:
+  - Fix git repository in `C:\dev\ai-agent-frontend`
+  - Use workaround location for builds
 
 ---
 
