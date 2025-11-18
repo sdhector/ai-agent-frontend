@@ -51,7 +51,7 @@ export function MCPServerList({
           No MCP Servers
         </Text>
         <Text className="text-gray-600 text-center">
-          Default MCP servers will be automatically provisioned when you first access this screen.
+          No MCP servers available. Pull down to refresh.
         </Text>
       </View>
     );
@@ -79,13 +79,6 @@ export function MCPServerList({
           colors={['#0284c7']}
           tintColor="#0284c7"
         />
-      }
-      ListHeaderComponent={
-        <View className="mb-4">
-          <Text className="text-sm text-gray-600">
-            Connect to MCP servers to access tools like Gmail, Google Drive, Calendar, and more.
-          </Text>
-        </View>
       }
     />
   );

@@ -18,6 +18,14 @@ export function MessageInput({ onSend, disabled, placeholder = 'Type a message..
     }
   };
 
+  // Handle key press for web (Enter to send, Shift+Enter for new line)
+  const handleKeyPress = (e: any) => {
+    if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -38,6 +46,7 @@ export function MessageInput({ onSend, disabled, placeholder = 'Type a message..
           `}
           style={{ textAlignVertical: 'top' }}
           onSubmitEditing={handleSend}
+          onKeyPress={handleKeyPress}
         />
 
         <TouchableOpacity
