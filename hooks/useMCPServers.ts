@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Platform, Linking } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { apiClient } from '@/lib/api-client';
@@ -37,6 +37,18 @@ export interface UseMCPServersReturn {
 export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServersReturn {
   const { autoFetch = true, onError } = options;
 
+  // Keep the latest onError handler in a ref so our callbacks remain stable
+  const errorHandlerRef = useRef<typeof onError>();
+  useEffect(() => {
+    errorHandlerRef.current = onError;
+  }, [onError]);
+
+  const safeOnError = useCallback((error: Error) => {
+    if (errorHandlerRef.current) {
+      errorHandlerRef.current(error);
+    }
+  }, []);
+
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -59,13 +71,11 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error fetching MCP servers:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
     } finally {
       setIsLoading(false);
     }
-  }, [onError]);
+  }, [safeOnError]);
 
   /**
    * Connect to MCP server
@@ -114,14 +124,12 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error connecting to MCP server:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     } finally {
       setIsConnecting(false);
     }
-  }, [fetchServers, onError]);
+  }, [fetchServers, safeOnError]);
 
   /**
    * Handle OAuth callback after authorization
@@ -142,12 +150,10 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error handling OAuth callback:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     }
-  }, [fetchServers, onError]);
+  }, [fetchServers, safeOnError]);
 
   /**
    * Disconnect from MCP server
@@ -172,12 +178,10 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error disconnecting MCP server:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     }
-  }, [onError]);
+  }, [safeOnError]);
 
   /**
    * Delete MCP server
@@ -195,12 +199,10 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error deleting MCP server:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     }
-  }, [onError]);
+  }, [safeOnError]);
 
   /**
    * Fetch tools available for a connected server
@@ -219,12 +221,10 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error fetching MCP tools:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     }
-  }, [onError]);
+  }, [safeOnError]);
 
   /**
    * Execute MCP tool
@@ -245,14 +245,12 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
       }
     } catch (error) {
       console.error('Error executing MCP tool:', error);
-      if (onError) {
-        onError(error as Error);
-      }
+      safeOnError(error as Error);
       throw error;
     } finally {
       setIsExecuting(false);
     }
-  }, [onError]);
+  }, [safeOnError]);
 
   /**
    * Refresh server list (alias for fetchServers)
