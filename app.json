@@ -56,10 +56,11 @@
       "router": {
         "origin": false
       },
+      "apiUrl": "http://localhost:8080",
       "eas": {
-        "projectId": "your-eas-project-id"
-      },
-      "apiUrl": "http://localhost:8080"
-    }
+        "projectId": "942c3376-7855-43ec-bb98-9bcb8a29facc"
+      }
+    },
+    "owner": "sdhector21"
   }
 }
