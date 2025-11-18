@@ -51,7 +51,7 @@ export default function ConversationsScreen() {
   const handleOpenConversation = (id: string) => {
     // Navigate to chat with conversation ID
     router.push({
-      pathname: '/(tabs)/',
+      pathname: '/(tabs)',
       params: { conversationId: id },
     });
   };

@@ -27,7 +27,7 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
-    const onIndexRoute = !segments[0] || segments[0] === 'index';
+    const onIndexRoute = !segments[0];
 
     console.log('Root layout navigation:', {
       isAuthenticated,
