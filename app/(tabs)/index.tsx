@@ -1,14 +1,21 @@
-import { View, Alert, TouchableOpacity, Text } from 'react-native';
-import { useState } from 'react';
+import { View, Alert, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/hooks/useChat';
+import { useConversations } from '@/hooks/useConversations';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageInput } from '@/components/chat/MessageInput';
 import { ProviderSelector } from '@/components/chat/ProviderSelector';
+import { MessageData } from '@/components/chat/Message';
 
 export default function ChatScreen() {
   const { isAuthenticated } = useAuth();
+  const params = useLocalSearchParams();
+  const { getConversation } = useConversations();
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+
   const {
     messages,
     isLoading,
@@ -16,11 +23,45 @@ export default function ChatScreen() {
     setSelectedModel,
     sendMessage,
     clearMessages,
+    loadConversation,
   } = useChat({
     onError: (error) => {
       Alert.alert('Error', error.message);
     },
   });
+
+  // Load conversation when conversationId param changes
+  useEffect(() => {
+    const conversationId = params.conversationId as string | undefined;
+
+    if (conversationId) {
+      setIsLoadingConversation(true);
+      getConversation(conversationId)
+        .then((conversation) => {
+          if (conversation) {
+            // Convert API message format to MessageData format
+            const convertedMessages: MessageData[] = conversation.messages.map((msg) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+            }));
+
+            loadConversation(convertedMessages, conversationId);
+            console.log('[Chat] Loaded conversation:', conversation.title, 'with', convertedMessages.length, 'messages');
+          } else {
+            Alert.alert('Error', 'Failed to load conversation');
+          }
+        })
+        .catch((error) => {
+          console.error('[Chat] Error loading conversation:', error);
+          Alert.alert('Error', 'Failed to load conversation');
+        })
+        .finally(() => {
+          setIsLoadingConversation(false);
+        });
+    }
+  }, [params.conversationId, getConversation, loadConversation]);
 
   const handleNewChat = () => {
     if (messages.length > 0) {
@@ -40,6 +81,16 @@ export default function ChatScreen() {
 
   if (!isAuthenticated) {
     return null; // Will be redirected by root layout
+  }
+
+  // Show loading screen while conversation is being loaded
+  if (isLoadingConversation) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#0284c7" />
+        <Text className="text-gray-600 mt-4">Loading conversation...</Text>
+      </View>
+    );
   }
 
   return (

@@ -49,7 +49,7 @@ export function useChat(options: UseChatOptions = {}) {
       // Prepare request body matching backend API requirements
       const requestBody = {
         messages: messagesArray,
-        model: 'claude-sonnet-4-5',
+        model: selectedModel,
         temperature: 0.7,
         max_tokens: 1000,
         stream: true,
