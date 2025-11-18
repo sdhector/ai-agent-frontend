@@ -32,9 +32,15 @@ export default function ConversationsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const success = await deleteConversation(id);
-            if (!success) {
-              Alert.alert('Error', 'Failed to delete conversation');
+            const result = await deleteConversation(id);
+            if (!result.success) {
+              Alert.alert(
+                'Error',
+                result.error || 'Failed to delete conversation. Please try again.'
+              );
+            } else {
+              // Show success message
+              console.log('[Conversations] Successfully deleted conversation:', title);
             }
           },
         },
