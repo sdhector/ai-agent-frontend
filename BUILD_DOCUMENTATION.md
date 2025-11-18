@@ -159,15 +159,6 @@ C:\dev\ai-agent-frontend
      - Only use workaround location if original location is confirmed as unfixable
    - **Status**: ⏳ Primary goal - fix original location first
 
-2. **Fix Git Repository in Workaround Location** (Only if workaround is needed)
-   - **Issue**: `C:\dev\ai-agent-frontend` git still points to original location
-   - **Impact**: Local Android builds fail due to path resolution
-   - **Solution**: 
-     - Remove `.git` from `C:\dev\ai-agent-frontend`
-     - Initialize new git repo or properly clone from remote
-     - Ensure `git rev-parse --show-toplevel` returns `C:/dev/ai-agent-frontend`
-   - **Note**: Only do this if you've decided the workaround location is necessary
-
 2. **Verify PWA Still Works**
    - **Action**: Test PWA build and runtime after all Android build troubleshooting
    - **Command**: `npm run build:web` then test locally
