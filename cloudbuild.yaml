@@ -1,0 +1,127 @@
+steps:
+  # Clean ALL cache and build artifacts to ensure completely fresh build
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== AGGRESSIVE CACHE CLEANING ==="
+        echo "Removing all cache and build directories..."
+        rm -rf dist .expo node_modules/.cache .cache web-build .expo-shared
+        echo "Cache cleaned successfully"
+        echo "Build timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+  # Install dependencies with clean slate
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== INSTALLING DEPENDENCIES ==="
+        rm -f package-lock.json
+        npm cache clean --force
+        npm install --legacy-peer-deps
+        echo "Dependencies installed"
+
+  # Verify environment variables
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== BUILD CONFIGURATION ==="
+        echo "EXPO_PUBLIC_API_URL=${_API_URL}"
+        echo "EXPO_PUBLIC_ENV=production"
+        echo "Build ID: $BUILD_ID"
+        echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+  # Build PWA for production with maximum cache clearing
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== STARTING PRODUCTION BUILD ==="
+        echo "Build timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+        # Clear metro bundler cache
+        npx expo export --platform web --output-dir dist --clear --max-workers 4
+
+        echo "=== BUILD COMPLETED ==="
+        echo "Build artifacts in dist/"
+        ls -la dist/
+        
+        # Verify critical files exist
+        echo ""
+        echo "=== VERIFYING BUILD OUTPUT ==="
+        if [ ! -f "dist/index.html" ]; then
+          echo "❌ ERROR: dist/index.html not found!"
+          exit 1
+        fi
+        echo "✅ index.html exists"
+        
+        # Check for JavaScript files
+        if [ -z "$(find dist -name '*.js' | head -1)" ]; then
+          echo "❌ ERROR: No JavaScript files found in dist/"
+          exit 1
+        fi
+        echo "✅ JavaScript files found"
+        
+        # Check for _sitemap.html (Expo Router)
+        if [ -f "dist/_sitemap.html" ]; then
+          echo "✅ Expo Router sitemap found"
+        else
+          echo "⚠️  WARNING: Expo Router sitemap not found (may not be an issue)"
+        fi
+        
+        echo ""
+        echo "=== BUILD VERIFICATION COMPLETE ==="
+    env:
+      - 'EXPO_PUBLIC_API_URL=${_API_URL}'
+      - 'EXPO_PUBLIC_APP_NAME=AI Agent'
+      - 'EXPO_PUBLIC_APP_VERSION=1.0.0'
+      - 'EXPO_PUBLIC_ENV=production'
+      - 'NODE_ENV=production'
+
+  # Deploy to Firebase Hosting with cache control
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== DEPLOYING TO FIREBASE HOSTING ==="
+        npm install -g firebase-tools
+
+        # Verify firebase.json exists
+        if [ ! -f "firebase.json" ]; then
+          echo "❌ ERROR: firebase.json not found!"
+          exit 1
+        fi
+        
+        # Deploy with version message
+        firebase deploy \
+          --only hosting:ai-agent-frontend-462321 \
+          --project ${_FIREBASE_PROJECT_ID} \
+          --non-interactive \
+          --message "Build $BUILD_ID at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+        echo "=== DEPLOYMENT COMPLETED ==="
+        echo "Site URL: https://ai-agent-frontend-462321.web.app"
+        echo ""
+        echo "=== POST-DEPLOYMENT CHECK ==="
+        echo "Please verify:"
+        echo "  1. Visit https://ai-agent-frontend-462321.web.app"
+        echo "  2. Open browser DevTools (F12)"
+        echo "  3. Check Console tab for JavaScript errors"
+        echo "  4. Check Network tab for failed requests (404, 500, etc.)"
+        echo "  5. Verify the app loads correctly"
+
+substitutions:
+  _API_URL: 'https://ai-agent-backend-tsgdvcezgq-uc.a.run.app'
+  _FIREBASE_PROJECT_ID: 'professional-website-462321'
+  
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  
+timeout: '1200s'

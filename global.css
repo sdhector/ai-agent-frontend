@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure full height for web layout */
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix for React Native Web containers */
+#root > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+/* Ensure proper icon font rendering for @expo/vector-icons */
+@font-face {
+  font-family: 'Ionicons';
+  src: url('https://cdnjs.cloudflare.com/ajax/libs/ionicons/7.2.2/fonts/ionicons.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fix icon rendering - ensure proper font smoothing and display */
+[class*='ionicons'],
+[class*='icon-'],
+.expo-icon {
+  font-family: 'Ionicons' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

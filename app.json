@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "AI Agent",
+    "slug": "ai-agent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "ai-agent",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0284c7"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hectorsanchez.aiagent"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0284c7"
+      },
+      "package": "com.hectorsanchez.aiagent",
+      "permissions": [
+        "android.permission.INTERNET"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "AI Agent",
+      "shortName": "AI Agent",
+      "description": "AI-powered agent with chat, conversation management, and MCP integration",
+      "backgroundColor": "#ffffff",
+      "themeColor": "#0284c7",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/",
+      "lang": "en",
+      "dir": "ltr",
+      "favicon": "./assets/icon.png",
+      "manifest": "./public/manifest.webmanifest"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "apiUrl": "http://localhost:8080",
+      "eas": {
+        "projectId": "942c3376-7855-43ec-bb98-9bcb8a29facc"
+      }
+    },
+    "owner": "sdhector21"
+  }
+}
