@@ -180,7 +180,17 @@ C:\dev\ai-agent-frontend
    - **Check**: Build complete hook errors
    - **Status**: ⏳ Needs investigation
 
-5. **Create Robust Build Scripts**
+5. **Fix Git Repository in Workaround Location** (Only if workaround is needed)
+   - **Issue**: `C:\dev\ai-agent-frontend` git still points to original location
+   - **Impact**: Local Android builds fail due to path resolution
+   - **Solution**: 
+     - Remove `.git` from `C:\dev\ai-agent-frontend`
+     - Initialize new git repo or properly clone from remote
+     - Ensure `git rev-parse --show-toplevel` returns `C:/dev/ai-agent-frontend`
+   - **Note**: Only do this if you've confirmed the workaround location is necessary
+   - **Status**: ⏳ Only if workaround is used
+
+6. **Create Robust Build Scripts**
    - **Goal**: Single command to build both PWA and Android
    - **Requirements**:
      - Handle path issues automatically
@@ -190,7 +200,7 @@ C:\dev\ai-agent-frontend
 
 ### Low Priority
 
-6. **App Rename: "AI Agent" → "SanDi"**
+7. **App Rename: "AI Agent" → "SanDi"**
    - **Files to update**:
      - `app.json` - name, slug
      - `package.json` - name, description
