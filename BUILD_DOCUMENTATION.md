@@ -57,19 +57,52 @@ exited with non-zero code: 128
 
 **Status**: ⚠️ Workaround available but should be avoided - fix original location first
 
-### 2. Android Local Build - Path Resolution Issue
-**Problem**: When building locally with Gradle, the build system still references `node_modules` from the original location with spaces, causing:
-- CMake path length warnings (paths exceed 250 characters)
-- Build failures with "manifest 'build.ninja' still dirty after 100 tries"
+### 2. Android Local Build - NDK Version Incompatibility ⭐ **PRIMARY BLOCKER**
+**Problem**: React Native 0.81.5 requires NDK 27 for C++20 support, but build system is using NDK 25, causing C++ compilation errors.
+
+**Errors Encountered**:
+```
+error: no member named 'regular' in namespace 'std'
+error: no type named 'identity' in namespace 'std'
+error: expected concept name with optional arguments
+error: unknown type name 'Hashable'
+```
 
 **Root Cause**: 
-- Git repository in `C:\dev\ai-agent-frontend` still points to original location
-- `git rev-parse --show-toplevel` returns: `C:/Users/Hector's PC/Documents/Github/01-websites/applications/ai-agent/ai-agent-frontend`
-- Build tools resolve paths relative to git root, not current directory
+- React Native 0.81.5 uses C++20 features (concepts, `std::regular`, `std::identity`) that require NDK 27+
+- Installed NDK versions: 25.1.8937393 and 27.1.12297006
+- Build system is defaulting to or cached with NDK 25
+- CMake cache in `node_modules/*/android/.cxx/` directories persists NDK 25 configuration
+- Even after removing `ndk.dir` from `local.properties` and setting `ndkVersion` in `build.gradle`, CMake continues using NDK 25
 
-**Status**: 🔴 Blocking local Android builds
+**Attempts Made**:
+1. ✅ Created `android/local.properties` with SDK path
+2. ✅ Removed `.git` from `C:\dev\ai-agent-frontend` to avoid path resolution issues
+3. ✅ Attempted to force NDK 25 in `build.gradle` - failed with C++20 errors
+4. ✅ Attempted to force NDK 27 in `build.gradle` - CMake cache still uses NDK 25
+5. ✅ Tried deep cleaning `.cxx` directories - build still uses cached NDK 25 paths
 
-### 3. EAS Cloud Build Failures
+**Current State**:
+- Build location: `C:\dev\ai-agent-frontend\android`
+- `local.properties`: Contains only `sdk.dir` (no `ndk.dir` specified)
+- `build.gradle`: No explicit `ndkVersion` set (should default to 27.1.12297006)
+- CMake build logs show: `C:\Users\HECTOR~1\AppData\Local\Android\Sdk\ndk\251~1.893\...` (NDK 25)
+
+**Status**: 🔴 **BLOCKING** - NDK version mismatch preventing C++ compilation
+
+### 3. Android Local Build - Path Length Issues (Original Location)
+**Problem**: When building from original location with spaces, CMake encounters path length warnings:
+- Paths exceed 250 characters (Windows limit)
+- Warnings: "The object file directory has 203 characters. The maximum full path to an object file is 250 characters"
+
+**Attempts Made**:
+1. ✅ Attempted build from original location - encountered path length warnings
+2. ✅ Tried using `subst` to map to drive B: - failed (settings.gradle couldn't resolve paths)
+3. ✅ Moved to workaround location `C:\dev\ai-agent-frontend` - path length issue resolved
+
+**Status**: ⚠️ Resolved by using workaround location, but NDK issue is blocking builds
+
+### 4. EAS Cloud Build Failures
 **Problem**: Builds upload successfully but fail on EAS servers with:
 ```
 Unknown error. See logs of the Build complete hook build phase for more information.
@@ -135,15 +168,18 @@ C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent
 - **Git**: Main repository
 - **Use for**: Development, PWA builds
 
-### Workaround Location (No Spaces) - OPTIONAL/LAST RESORT
+### Workaround Location (No Spaces) - CURRENTLY IN USE
 ```
 C:\dev\ai-agent-frontend
 ```
-- **Status**: ⚠️ Available but should be avoided
-- **Git**: Points to original location (needs fixing)
-- **Use for**: Only if original location cannot be fixed
-- **Note**: This is a **temporary workaround** - attempt to fix original location first
-- **Decision**: Only use this location if you've confirmed the path with spaces is the actual obstacle
+- **Status**: ✅ Currently being used for Android builds
+- **Git**: `.git` folder renamed to `.git_bak` to avoid path resolution issues
+- **Use for**: Android local builds (path length issue resolved)
+- **Configuration**:
+  - `android/local.properties`: Contains `sdk.dir` only
+  - `android/build.gradle`: No explicit `ndkVersion` (should default to 27)
+  - CMake cache directories: `.cxx` folders in `node_modules/*/android/` still reference NDK 25
+- **Note**: This location resolved path length issues but NDK version problem persists
 
 ---
 
@@ -164,14 +200,15 @@ C:\dev\ai-agent-frontend
    - **Command**: `npm run build:web` then test locally
    - **Status**: ⏳ Pending verification
 
-3. **Test Local Android Build from Original Location** ⭐ **PRIORITY**
-   - **Goal**: Verify if local Gradle build works from original location (with spaces)
-   - **Rationale**: If it works, we can eliminate the workaround location entirely
+3. **Fix NDK Version Mismatch** ⭐ **CURRENT PRIORITY**
+   - **Goal**: Force build system to use NDK 27 instead of NDK 25
+   - **Problem**: CMake cache persists NDK 25 configuration despite Gradle settings
    - **Approach**: 
-     - Try `npx expo prebuild --platform android --clean` from original location
-     - Try `cd android && .\gradlew.bat assembleRelease` from original location
-     - Document any errors and attempt to fix them
-   - **Status**: ⏳ **DO THIS FIRST** - Primary task
+     - Clear all CMake cache directories (`node_modules/*/android/.cxx/`)
+     - Ensure `build.gradle` explicitly sets `ndkVersion = "27.1.12297006"`
+     - Verify `local.properties` doesn't specify `ndk.dir`
+     - May need to delete entire `.cxx` directories and rebuild
+   - **Status**: 🔴 **BLOCKING** - Current primary blocker
 
 ### Medium Priority
 
@@ -180,15 +217,12 @@ C:\dev\ai-agent-frontend
    - **Check**: Build complete hook errors
    - **Status**: ⏳ Needs investigation
 
-5. **Fix Git Repository in Workaround Location** (Only if workaround is needed)
-   - **Issue**: `C:\dev\ai-agent-frontend` git still points to original location
-   - **Impact**: Local Android builds fail due to path resolution
-   - **Solution**: 
-     - Remove `.git` from `C:\dev\ai-agent-frontend`
-     - Initialize new git repo or properly clone from remote
-     - Ensure `git rev-parse --show-toplevel` returns `C:/dev/ai-agent-frontend`
-   - **Note**: Only do this if you've confirmed the workaround location is necessary
-   - **Status**: ⏳ Only if workaround is used
+5. **Fix Git Repository in Workaround Location** ✅ **COMPLETED**
+   - **Issue**: `C:\dev\ai-agent-frontend` git still pointed to original location
+   - **Solution Applied**: 
+     - Renamed `.git` to `.git_bak` in `C:\dev\ai-agent-frontend`
+     - This prevents build tools from resolving paths relative to original git root
+   - **Status**: ✅ Resolved - path resolution issue fixed
 
 6. **Create Robust Build Scripts**
    - **Goal**: Single command to build both PWA and Android
@@ -313,6 +347,92 @@ After making a code change, we should be able to:
 
 ---
 
-**Last Updated**: November 18, 2025  
-**Next Review**: After Android build is working
+## 📝 Recent Build Attempts (November 18, 2025)
+
+### Attempt 1: Original Location
+- **Location**: `C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`
+- **Result**: Path length warnings (250+ character paths)
+- **Action**: Moved to workaround location
+
+### Attempt 2: Workaround Location with Subst
+- **Location**: `C:\dev\ai-agent-frontend` (mapped to B:)
+- **Result**: Failed - `settings.gradle` couldn't resolve paths from subst drive
+- **Action**: Abandoned subst approach
+
+### Attempt 3: Workaround Location (Direct)
+- **Location**: `C:\dev\ai-agent-frontend`
+- **Actions Taken**:
+  1. Renamed `.git` to `.git_bak` to avoid path resolution
+  2. Created `android/local.properties` with SDK path
+  3. Ran `npx expo prebuild --platform android --clean`
+  4. Attempted `.\gradlew.bat assembleRelease`
+- **Result**: 
+  - ✅ Path length issues resolved
+  - ❌ NDK version mismatch discovered
+  - Build fails with C++20 compilation errors (NDK 25 doesn't support C++20)
+
+### Attempt 4: Force NDK 25
+- **Action**: Set `ndkVersion = "25.1.8937393"` in `build.gradle`
+- **Result**: Confirmed C++20 errors - NDK 25 incompatible with React Native 0.81.5
+
+### Attempt 5: Force NDK 27
+- **Action**: Set `ndkVersion = "27.1.12297006"` in `build.gradle`, removed `ndk.dir` from `local.properties`
+- **Result**: CMake still uses NDK 25 from cache (paths in error logs show `ndk\251~1.893\`)
+
+### Current Blocker (As of Nov 18)
+- **Issue**: CMake cache in `node_modules/*/android/.cxx/` directories persists NDK 25 configuration
+- **Next Steps Needed**: 
+  - Delete all `.cxx` directories in `node_modules`
+  - Ensure `build.gradle` explicitly sets NDK 27
+  - Rebuild from scratch
+
+---
+
+## 🧪 Follow-up Build Attempts (November 19, 2025)
+
+### Attempt 6: Original Repo (NDK 27 + Cache Purge)
+- **Location**: `C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`
+- **Actions**:
+  1. Added `ndkVersion "27.1.12297006"` to `android/app/build.gradle`.
+  2. Deleted every `node_modules/**/.cxx` directory and reran `npx expo prebuild --platform android`.
+  3. Ran `./gradlew.bat clean assembleRelease`.
+- **Result**:
+  - ✅ Toolchain now picks up NDK 27 (CMake logs show `ndk\27.1.12297006` paths).
+  - ❌ Build still fails, but only due to Ninja `CMAKE_OBJECT_PATH_MAX` warnings when generating `react-native-worklets` objects inside the deep path with spaces.
+
+### Attempt 7: Short-Path Mirror (`C:\dev\ai-agent-frontend`)
+- **Actions**:
+  1. Mirrored the repo via `robocopy` (excluding `.git`) into `C:\dev\ai-agent-frontend`.
+  2. Regenerated native code with `npx expo prebuild --platform android`.
+  3. Ran `./gradlew.bat clean assembleRelease`.
+- **Result**:
+  - ✅ Path-length warnings from Windows (250 char limit) are gone.
+  - ❌ NDK 27 is honored, but the `.cxx/RelWithDebInfo/.../CMakeFiles/*.dir` staging folders for `react-native-screens` and `react-native-worklets` still exceed Ninja’s internal object-path limit.
+
+### Attempt 8: Force Shorter CMake Object Paths
+- **Actions**:
+  1. Injected `CMAKE_OBJECT_PATH_MAX 128` into `node_modules/react-native-screens/android/CMakeLists.txt` and `node_modules/react-native-worklets/android/CMakeLists.txt`.
+  2. Captured the tweaks via `patches/react-native-screens+4.16.0.patch` and `patches/react-native-worklets+0.5.1.patch` so they reapply after installs.
+  3. Removed all `.cxx` folders again, reran `expo prebuild`, and reattempted `./gradlew.bat clean assembleRelease` from both repo locations.
+- **Result**:
+  - ⚠️ CMake now warns the directories exceed the new 128-character ceiling (rather than 250), proving the clamp works.
+  - ❌ Ninja still aborts because even 128 characters isn’t short enough once the repo path includes `C:\Users\Hector's PC\Documents\Github\01-websites\applications\ai-agent\ai-agent-frontend`.
+
+### Updated Blocker
+- **Issue**: `react-native-worklets` (and, to a lesser degree, `react-native-screens`) generate extremely long intermediate object paths under `.cxx/.../CMakeFiles`. Even with NDK 27 and `CMAKE_OBJECT_PATH_MAX` set to 128, Ninja refuses to build when the root path contains spaces and ~100 characters before `node_modules`.
+- **Observations**:
+  - The failure now occurs regardless of repo location, but the original path hits the limit sooner due to spaces (`Hector's PC`) and nested directories.
+  - Removing `react-native-worklets` is not currently an option—it's listed in `package.json`. If it is unused, uninstalling it would sidestep these native builds entirely.
+- **Potential Next Steps**:
+  1. Move the *git-tracked* repo to a truly short path (e.g., `C:\src\ai`). Running Gradle from such a path should keep `.cxx/.../CMakeFiles` under 128 chars.
+  2. Override `android.externalNativeBuild.cmake.buildStagingDirectory` or `android.ndkPath` to point at a short custom directory (e.g., `C:\android\.cxx`) so the generated object directories shrink.
+  3. Evaluate whether `react-native-worklets` can be removed or replaced—disabling it removes the deepest native tree.
+
+---
+
+
+---
+
+**Last Updated**: November 19, 2025  
+**Next Review**: After CMake/Ninja path length issue is resolved
 

@@ -121,6 +121,11 @@ android {
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
     }
+    externalNativeBuild {
+        cmake {
+            buildStagingDirectory = "C:/android-builds/.cxx"
+        }
+    }
     packagingOptions {
         jniLibs {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
