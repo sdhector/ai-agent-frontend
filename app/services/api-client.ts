@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './constants';
+import { API_BASE_URL, FALLBACK_API_URL } from './constants';
 import { getToken } from './storage';
 import { getCSRFToken, fetchCSRFToken } from './csrf';
 
@@ -6,18 +6,24 @@ interface FetchOptions extends RequestInit {
   requiresAuth?: boolean;
   retries?: number; // Number of retry attempts (default: 0 - no retries)
   retryDelay?: number; // Base delay in ms for exponential backoff (default: 1000ms)
+  useFallback?: boolean; // Whether to try fallback URL on failure (default: true in dev)
 }
 
 export class APIClient {
   private baseUrl: string;
+  private fallbackUrl: string;
   private pendingRequests: Map<string, Promise<Response>> = new Map();
+  private useFallback: boolean;
 
-  constructor(baseUrl: string = API_BASE_URL) {
+  constructor(baseUrl: string = API_BASE_URL, fallbackUrl: string = FALLBACK_API_URL) {
     this.baseUrl = baseUrl;
+    this.fallbackUrl = fallbackUrl;
+    // Enable fallback in development when using localhost
+    this.useFallback = __DEV__ && (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1'));
   }
 
   async fetch(endpoint: string, options: FetchOptions = {}) {
-    const { requiresAuth = true, retries = 0, retryDelay = 1000, ...fetchOptions } = options;
+    const { requiresAuth = true, retries = 0, retryDelay = 1000, useFallback = this.useFallback, ...fetchOptions } = options;
 
     // Create a unique key for this request (endpoint + method)
     // Only deduplicate GET requests to avoid issues with POST/PUT/DELETE
@@ -65,26 +71,35 @@ export class APIClient {
       }
     }
 
-    const url = `${this.baseUrl}${endpoint}`;
-
     // Create the request promise and store it if this is a GET request
     const requestPromise = (async () => {
-      // Retry logic with exponential backoff
+      // Try primary URL first, then fallback if enabled
+      const urlsToTry = useFallback ? [this.baseUrl, this.fallbackUrl] : [this.baseUrl];
       let lastError: Error | null = null;
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          if (attempt > 0) {
-            // Calculate exponential backoff delay: retryDelay * 2^(attempt-1)
-            const delay = retryDelay * Math.pow(2, attempt - 1);
-            console.log(`[API Client] Retrying request (attempt ${attempt}/${retries}) after ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
+      
+      for (const baseUrl of urlsToTry) {
+        const url = `${baseUrl}${endpoint}`;
+        
+        // If this is not the first URL, log the fallback attempt
+        if (baseUrl !== this.baseUrl) {
+          console.log(`[API Client] Primary URL failed, trying fallback: ${baseUrl}`);
+        }
+        
+        // Retry logic with exponential backoff
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            if (attempt > 0) {
+              // Calculate exponential backoff delay: retryDelay * 2^(attempt-1)
+              const delay = retryDelay * Math.pow(2, attempt - 1);
+              console.log(`[API Client] Retrying request (attempt ${attempt}/${retries}) after ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
 
-          const response = await fetch(url, {
-            ...fetchOptions,
-            headers,
-            credentials: 'include', // Important: include cookies for CSRF/session
-          });
+            const response = await fetch(url, {
+              ...fetchOptions,
+              headers,
+              credentials: 'include', // Important: include cookies for CSRF/session
+            });
 
           // Don't retry on client errors (4xx) except 408 (timeout)
           // Note: 429 (rate limit) should NOT be retried immediately as it will make the problem worse
@@ -114,24 +129,33 @@ export class APIClient {
             }
           }
 
-          return response;
-        } catch (error) {
-          lastError = error as Error;
+            return response;
+          } catch (error) {
+            lastError = error as Error;
 
-          // Network errors are retryable
-          if (attempt < retries) {
-            console.warn(`[API Client] Request failed (attempt ${attempt + 1}/${retries + 1}):`, error);
-            continue;
+            // Network errors are retryable
+            if (attempt < retries) {
+              console.warn(`[API Client] Request failed (attempt ${attempt + 1}/${retries + 1}):`, error);
+              continue;
+            }
+
+            // If this is the last attempt for primary URL and we have a fallback, try next URL
+            if (baseUrl === this.baseUrl && urlsToTry.length > 1) {
+              console.warn(`[API Client] Primary URL failed after ${retries + 1} attempts, will try fallback:`, error);
+              break; // Break out of retry loop to try fallback URL
+            }
+
+            // If no more retries and no fallback, throw the error
+            if (baseUrl === this.fallbackUrl || urlsToTry.length === 1) {
+              console.error('API Client Error (all retries exhausted):', error);
+              throw error;
+            }
           }
-
-          // All retries exhausted
-          console.error('API Client Error (all retries exhausted):', error);
-          throw error;
         }
-    }
+      }
 
-    // This should never be reached, but TypeScript needs it
-    throw lastError || new Error('Unknown error occurred');
+      // All URLs exhausted
+      throw lastError || new Error('Unknown error occurred');
     })();
 
     // Store the promise for GET requests to enable deduplication
