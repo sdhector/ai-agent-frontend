@@ -62,7 +62,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <StatusBar style="auto" />
+        {Platform.OS !== 'web' && <StatusBar style="auto" />}
         <AppNavigator />
       </AuthProvider>
     </ErrorBoundary>
