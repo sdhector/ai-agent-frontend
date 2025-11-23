@@ -201,9 +201,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     if (Platform.OS === 'web') {
       // Web: Use full page redirect
-      // The backend should redirect to the root URL with a token parameter
-      // Our navigation will catch it and process the token
-      const callbackUrl = `${window.location.origin}`;
+      // The backend redirects to /oauth-callback with a token parameter
+      // We need to send the full callback URL including the path
+      const callbackUrl = `${window.location.origin}/oauth-callback`;
       
       // Get effective API URL (with fallback if localhost unavailable)
       const effectiveApiUrl = await getEffectiveApiUrl();
