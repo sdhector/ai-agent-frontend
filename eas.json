@@ -10,11 +10,19 @@
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ai-agent-backend-tsgdvcezgq-uc.a.run.app",
+        "EXPO_PUBLIC_ENV": "production"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ai-agent-backend-tsgdvcezgq-uc.a.run.app",
+        "EXPO_PUBLIC_ENV": "production"
       }
     }
   },

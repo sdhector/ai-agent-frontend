@@ -88,6 +88,7 @@ export class APIClient {
 
           // Don't retry on client errors (4xx) except 408 (timeout)
           // Note: 429 (rate limit) should NOT be retried immediately as it will make the problem worse
+          // Note: 401 (unauthorized) should be handled by the caller (AuthContext) to clear invalid tokens
           if (!response.ok) {
             const shouldRetry =
               attempt < retries &&
@@ -95,6 +96,14 @@ export class APIClient {
                response.status === 408); // Request timeout
 
             if (!shouldRetry) {
+              // For 401 errors, return the response so the caller can handle token clearing
+              // Don't consume the response body so the caller can read it if needed
+              if (response.status === 401) {
+                console.warn('[API Client] 401 Unauthorized - returning response for caller to handle');
+                return response; // Return the response so AuthContext can clear the token
+              }
+              
+              // For other errors, read the body and throw
               const errorText = await response.text();
               throw new Error(`API Error ${response.status}: ${errorText || response.statusText}`);
             } else {

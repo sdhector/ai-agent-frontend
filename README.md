@@ -31,7 +31,7 @@ This is a React Native application built with Expo that can deploy to:
 **Key Architecture Decision**: ONE codebase builds BOTH targets, maximizing code reuse (90%+) while handling platform-specific differences via `Platform.OS` checks.
 
 **Technology Stack**:
-- **Framework**: React Native 0.76.5 + Expo 52.0.0
+- **Framework**: React Native 0.81.5 + Expo 54.0.0
 - **Language**: TypeScript 5
 - **Styling**: NativeWind 4.x (Tailwind CSS for React Native)
 - **Navigation**: Expo Router (file-based routing)

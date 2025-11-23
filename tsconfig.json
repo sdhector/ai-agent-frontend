@@ -8,24 +8,36 @@
         "./*"
       ],
       "@components/*": [
-        "./components/*"
+        "./app/components/*"
+      ],
+      "@screens/*": [
+        "./app/screens/*"
+      ],
+      "@services/*": [
+        "./app/services/*"
       ],
       "@hooks/*": [
-        "./hooks/*"
-      ],
-      "@lib/*": [
-        "./lib/*"
+        "./app/utils/hooks/*"
       ],
       "@contexts/*": [
-        "./contexts/*"
+        "./app/contexts/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
     "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".expo",
+    "dist",
+    "android",
+    "ios",
+    "components",
+    "contexts",
+    "hooks",
+    "lib"
   ]
 }

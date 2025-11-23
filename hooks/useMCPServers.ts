@@ -38,7 +38,7 @@ export function useMCPServers(options: UseMCPServersOptions = {}): UseMCPServers
   const { autoFetch = true, onError } = options;
 
   // Keep the latest onError handler in a ref so our callbacks remain stable
-  const errorHandlerRef = useRef<typeof onError>();
+  const errorHandlerRef = useRef<typeof onError>(undefined);
   useEffect(() => {
     errorHandlerRef.current = onError;
   }, [onError]);
