@@ -21,10 +21,10 @@ Successfully migrated the React Native app from **Expo Router** to **Ignite Boil
 - **Entry Point**: Changed from `expo-router/entry` to `index.js` → `app/app.tsx`
 
 ### 2. **Dependencies Updated** ✅
-- **Removed**: `expo-router`, `@react-native-async-storage/async-storage`
+- **Removed**: `expo-router`, `@react-native-async-storage/async-storage`, `react-native-worklets` (not needed)
 - **Added**: `react-native-mmkv` (synchronous storage)
-- **Added**: `react-native-worklets` (required by NativeWind/Babel)
 - **Updated**: `package.json` main entry to `index.js`
+- **Note**: `react-native-worklets` was initially installed to fix a Babel error, but later confirmed **not required** for Ignite. Removing it also helps Android builds avoid path length issues.
 
 ### 3. **Configuration Changes** ✅
 - **app.json**: 
