@@ -32,6 +32,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
+      "favicon": "./assets/icon.png",
       "name": "AI Agent",
       "shortName": "AI Agent",
       "description": "AI-powered agent with chat, conversation management, and MCP integration",
@@ -42,9 +43,7 @@
       "startUrl": "/",
       "scope": "/",
       "lang": "en",
-      "dir": "ltr",
-      "favicon": "./assets/icon.png",
-      "manifest": "./public/manifest.webmanifest"
+      "dir": "ltr"
     },
     "plugins": [],
     "extra": {
@@ -56,3 +55,4 @@
     "owner": "sdhector21"
   }
 }
+

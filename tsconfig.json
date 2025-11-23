@@ -8,16 +8,19 @@
         "./*"
       ],
       "@components/*": [
-        "./components/*"
+        "./app/components/*"
+      ],
+      "@screens/*": [
+        "./app/screens/*"
+      ],
+      "@services/*": [
+        "./app/services/*"
       ],
       "@hooks/*": [
-        "./hooks/*"
-      ],
-      "@lib/*": [
-        "./lib/*"
+        "./app/utils/hooks/*"
       ],
       "@contexts/*": [
-        "./contexts/*"
+        "./app/contexts/*"
       ]
     }
   },
