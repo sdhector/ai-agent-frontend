@@ -51,6 +51,9 @@
       "apiUrl": "http://localhost:8080",
       "eas": {
         "projectId": "942c3376-7855-43ec-bb98-9bcb8a29facc"
+      },
+      "router": {
+        "origin": false
       }
     },
     "owner": "sdhector21"
