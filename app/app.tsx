@@ -7,7 +7,6 @@
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from './contexts/AuthContext';
@@ -15,8 +14,17 @@ import { AppNavigator } from './navigators/AppNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
 import '../global.css';
 
-// Keep splash screen visible while loading
-SplashScreen.preventAutoHideAsync();
+// Conditionally import SplashScreen only on native platforms
+// On web, expo-splash-screen can cause module registration issues
+let SplashScreen: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    SplashScreen = require('expo-splash-screen');
+    SplashScreen.preventAutoHideAsync();
+  } catch (e) {
+    console.warn('SplashScreen not available:', e);
+  }
+}
 
 export default function App() {
   // Load fonts
@@ -26,8 +34,10 @@ export default function App() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      // Hide splash screen once fonts are loaded
-      SplashScreen.hideAsync();
+      // Hide splash screen once fonts are loaded (only on native)
+      if (Platform.OS !== 'web' && SplashScreen) {
+        SplashScreen.hideAsync();
+      }
     }
   }, [fontsLoaded, fontError]);
 
