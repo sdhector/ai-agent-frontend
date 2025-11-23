@@ -12,7 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppNavigator } from './navigators/AppNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
-import '../global.css';
+
+// Only import global.css on web platform
+if (Platform.OS === 'web') {
+  require('../global.css');
+}
 
 // Conditionally import SplashScreen only on native platforms
 // On web, expo-splash-screen can cause module registration issues
