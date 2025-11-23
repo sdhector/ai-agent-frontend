@@ -62,10 +62,11 @@ Successfully migrated the React Native app from **Expo Router** to **Ignite Boil
 - **Fix**: Conditionally render StatusBar only on native: `{Platform.OS !== 'web' && <StatusBar />}`
 - **Result**: No web-specific module errors
 
-#### Issue 4: Missing Babel Plugin
+#### Issue 4: Missing Babel Plugin (Resolved - Not Needed)
 - **Problem**: `Cannot find module 'react-native-worklets/plugin'` causing 500 error
-- **Fix**: Installed `react-native-worklets` as dev dependency
-- **Result**: Bundle now loads correctly (4.3MB, application/javascript MIME type)
+- **Initial Fix**: Installed `react-native-worklets` as dev dependency
+- **Final Resolution**: Removed `react-native-worklets` - **NOT required for Ignite**
+- **Result**: Bundle loads correctly without it. This also helps Android builds (avoids path length issues)
 
 #### Issue 5: TypeScript Errors
 - **Problem**: Old Expo Router files causing compilation errors
