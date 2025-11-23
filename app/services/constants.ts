@@ -1,6 +1,10 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+// Production backend URL (Cloud Run)
+const PRODUCTION_API_URL = 'https://ai-agent-backend-tsgdvcezgq-uc.a.run.app';
+const LOCAL_API_URL = 'http://localhost:8080';
+
 // Get API URL from environment variables or use default
 // In production, EXPO_PUBLIC_API_URL should be set in .env.production
 const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -26,17 +30,70 @@ const validateApiUrl = (url: string | undefined): string => {
     console.warn('⚠️  Using default localhost API URL (development mode)');
   }
 
-  return url || 'http://localhost:8080';
+  return url || LOCAL_API_URL;
 };
 
+// Determine primary API URL
 const rawApiUrl = Platform.select({
-  web: envApiUrl || expoConfigApiUrl || 'http://localhost:8080',
-  default: envApiUrl || 'http://localhost:8080',
+  web: envApiUrl || expoConfigApiUrl || LOCAL_API_URL,
+  default: envApiUrl || LOCAL_API_URL,
   // For local development with Android emulator:
   // android: 'http://10.0.2.2:8080',
 });
 
+// Primary API URL (validated)
 export const API_BASE_URL = validateApiUrl(rawApiUrl);
+
+// Fallback API URL (production backend)
+// Used when localhost is not available
+export const FALLBACK_API_URL = PRODUCTION_API_URL;
+
+/**
+ * Get the effective API URL to use
+ * In development with localhost, checks if localhost is reachable
+ * Falls back to production URL if localhost is not available
+ * In production (APK), always uses the configured production URL
+ */
+export async function getEffectiveApiUrl(): Promise<string> {
+  // If not using localhost, return the configured URL
+  if (!API_BASE_URL.includes('localhost') && !API_BASE_URL.includes('127.0.0.1')) {
+    return API_BASE_URL;
+  }
+
+  // In production builds (APK), if we somehow have localhost, use fallback immediately
+  if (!__DEV__ && (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1'))) {
+    console.warn('[API] Production build detected localhost, using fallback:', FALLBACK_API_URL);
+    return FALLBACK_API_URL;
+  }
+
+  // In development, check if localhost is reachable
+  if (__DEV__) {
+    try {
+      // Quick health check with short timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+      
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+        credentials: 'include',
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        console.log('[API] Local backend is reachable, using:', API_BASE_URL);
+        return API_BASE_URL;
+      }
+    } catch (error) {
+      // Localhost not reachable, use fallback
+      console.warn('[API] Local backend not reachable, using fallback:', FALLBACK_API_URL);
+      return FALLBACK_API_URL;
+    }
+  }
+
+  return API_BASE_URL;
+}
 
 // Log the API URL for debugging
 console.log('API Configuration:', {
@@ -45,6 +102,8 @@ console.log('API Configuration:', {
   envApiUrl,
   expoConfigApiUrl,
   API_BASE_URL,
+  FALLBACK_API_URL: API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1') ? FALLBACK_API_URL : 'N/A',
+  fallbackEnabled: __DEV__ && (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')),
   isValid: !API_BASE_URL.includes('localhost') || isDevelopment,
 });
 

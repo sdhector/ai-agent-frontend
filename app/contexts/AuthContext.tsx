@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { apiClient } from '../services/api-client';
-import { API_ENDPOINTS, API_BASE_URL } from '../services/constants';
+import { API_ENDPOINTS, API_BASE_URL, getEffectiveApiUrl } from '../services/constants';
 import { fetchCSRFToken } from '../services/csrf';
 import {
   saveToken,
@@ -204,9 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // The backend should redirect to the root URL with a token parameter
       // Our navigation will catch it and process the token
       const callbackUrl = `${window.location.origin}`;
-      const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(callbackUrl)}`;
+      
+      // Get effective API URL (with fallback if localhost unavailable)
+      const effectiveApiUrl = await getEffectiveApiUrl();
+      const authUrl = `${effectiveApiUrl}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(callbackUrl)}`;
       
       console.log('Redirecting to auth URL:', authUrl);
+      console.log('Effective API URL:', effectiveApiUrl);
       console.log('API_BASE_URL:', API_BASE_URL);
       console.log('Callback URL:', callbackUrl);
       
@@ -220,7 +224,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           path: 'oauth/callback',
         });
 
-        const authUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+        // Get effective API URL (with fallback if localhost unavailable)
+        const effectiveApiUrl = await getEffectiveApiUrl();
+        const authUrl = `${effectiveApiUrl}${API_ENDPOINTS.AUTH.GOOGLE}?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
         const result = await WebBrowser.openAuthSessionAsync(
           authUrl,
