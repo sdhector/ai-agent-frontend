@@ -21,7 +21,7 @@
 
 ## Build Options
 
-### Option 1: EAS Build (Recommended) ⭐
+### Option 1: EAS Build (Cloud) ⭐
 
 **Why**: Cloud-based build avoids local environment issues, path length problems, and NDK configuration.
 
@@ -50,18 +50,54 @@ eas build --platform android --profile production
 - ✅ Automatic signing
 - ✅ Works from any location
 
+**Limitations**:
+- ⚠️ 15 builds per month on free tier
+- ⚠️ Requires internet connection
+- ⚠️ Upload/download time
+
 ---
 
-### Option 2: Local Build
+### Option 1.5: WSL Build (Recommended for Local) 🐧
+
+**Why**: Linux build environment in Windows via WSL avoids Windows-specific C++ linking issues while allowing unlimited local builds.
+
+**Setup**: See [WSL_ANDROID_BUILD_SETUP.md](./WSL_ANDROID_BUILD_SETUP.md) for complete setup instructions.
+
+**Quick Start**:
+```bash
+# In WSL terminal
+cd /mnt/d/projects/ai-agent-frontend
+bash scripts/setup-wsl-android.sh    # First time only
+bash scripts/build-apk-wsl.sh        # Build APK
+```
+
+**Advantages**:
+- ✅ Unlimited builds (no EAS limits)
+- ✅ Faster iteration (no upload/download)
+- ✅ Linux environment (avoids Windows C++ issues)
+- ✅ Full control and debugging
+- ✅ Free (no quotas)
+
+**Requirements**:
+- WSL 2 with Ubuntu installed
+- ~5GB disk space for Android SDK/NDK
+
+---
+
+### Option 2: Native Windows Build (Not Recommended)
 
 **Prerequisites**:
 - Android Studio installed
 - Android SDK configured
 - NDK 27 installed (if using native modules)
 - Java JDK installed
+- `react-native-worklets` installed as dev dependency (required by `react-native-reanimated`)
 
 **Commands**:
 ```bash
+# Install worklets (required for reanimated build)
+npm install --save-dev react-native-worklets --legacy-peer-deps
+
 # Generate native Android project
 npx expo prebuild --platform android --clean
 
@@ -72,17 +108,33 @@ cd android
 # APK location: android/app/build/outputs/apk/release/app-release.apk
 ```
 
-**Note**: Local builds may encounter path length issues on Windows if:
-- Project path is very long
-- Native modules generate deep CMake paths
+**Note**: Local builds may encounter issues on Windows:
+- Path length issues if project path is very long
+- C++ linker errors with native modules (NDK/CMake compatibility)
+- Windows-specific NDK build configuration issues
 
-**If you encounter path issues**:
-1. Enable Windows Long Path Support (requires admin):
+**Known Issues**:
+1. **react-native-reanimated requires worklets**: Since `nativewind` depends on `react-native-reanimated`, which requires `react-native-worklets`, you must install worklets as a dev dependency even if you're not using reanimated features directly.
+
+2. **C++ Linking Errors**: Windows local builds may encounter C++ standard library linking errors with native modules (expo-modules-core, react-native-screens, etc.). These are Windows/NDK-specific issues that don't occur in EAS's Linux build environment.
+
+**If you encounter build issues**:
+1. **Path length issues**: Enable Windows Long Path Support (requires admin):
    ```powershell
    New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
      -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
    ```
-2. Or use EAS Build instead (recommended)
+2. **C++ linking errors**: These are complex Windows/NDK issues. **Use EAS Build instead (strongly recommended)**.
+3. **Worklets not found**: Ensure `react-native-worklets` is installed as a dev dependency.
+
+**Why EAS/WSL Builds Succeed**:
+- Uses Linux build environment (no Windows-specific issues)
+- Pre-configured NDK/CMake setup
+- Consistent build environment
+- No path length limitations
+- Proper C++ standard library linking configured
+
+**Recommendation**: Use **WSL Build** (Option 1.5) for unlimited local builds, or **EAS Build** (Option 1) for cloud builds.
 
 ---
 
