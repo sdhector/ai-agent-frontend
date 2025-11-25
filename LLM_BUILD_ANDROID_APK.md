@@ -23,10 +23,12 @@ The WSL Ubuntu environment has been fully configured with:
 | build-tools;36.0.0 | ✅ | `~/Android/Sdk/build-tools/36.0.0/` |
 | ndk;27.1.12297006 | ✅ | `~/Android/Sdk/ndk/27.1.12297006/` |
 
-Environment variables configured in `~/.bashrc`:
+Environment variables configured in `~/.profile` (source it first!):
 - `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`
 - `ANDROID_HOME=/home/sdhector/Android/Sdk`
-- `ANDROID_NDK_HOME=/home/sdhector/Android/Sdk/ndk/27.1.12297006`
+- `ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006`
+
+**Note**: Run `source ~/.profile` at the start of your WSL session to load these variables.
 
 ## Your Task
 
@@ -37,6 +39,9 @@ Build the Android APK using WSL. Follow these steps:
 Open WSL terminal and verify the environment:
 
 ```bash
+# IMPORTANT: Source .profile first (environment variables are set there)
+source ~/.profile
+
 # Verify environment variables
 echo $JAVA_HOME
 echo $ANDROID_HOME
@@ -118,10 +123,12 @@ cp android/app/build/outputs/apk/release/app-release.apk /mnt/d/projects/
 
 ## Troubleshooting
 
-### Issue: "JAVA_HOME not set"
+### Issue: "JAVA_HOME not set" or "ANDROID_HOME not set"
 ```bash
-source ~/.bashrc
+# Source the profile to load environment variables
+source ~/.profile
 echo $JAVA_HOME
+echo $ANDROID_HOME
 ```
 
 ### Issue: "NDK not found"
