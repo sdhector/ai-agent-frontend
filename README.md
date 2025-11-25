@@ -34,9 +34,9 @@ This is a React Native application built with Expo that can deploy to:
 - **Framework**: React Native 0.81.5 + Expo 54.0.0
 - **Language**: TypeScript 5
 - **Styling**: NativeWind 4.x (Tailwind CSS for React Native)
-- **Navigation**: Expo Router (file-based routing)
+- **Navigation**: React Navigation (Stack + Tabs)
 - **State Management**: React Hooks + Context API
-- **Storage**: AsyncStorage (web: localStorage, native: SecureStore)
+- **Storage**: MMKV (synchronous storage)
 
 ---
 
@@ -61,10 +61,12 @@ This is a React Native application built with Expo that can deploy to:
   - Install button component
   - iOS and Android PWA compatibility
 
-### Planned Features (Phase 6-8)
-- 🚧 **Android APK**: Build and distribute native Android app via EAS Build
-- 🚧 **Push Notifications**: Web Push API and expo-notifications (optional)
-- 🚧 **Advanced Features**: File uploads, voice input, etc.
+### In Progress
+- 🚧 **Android APK**: Local build via WSL + Gradle (see `LLM_BUILD_ANDROID_APK.md`)
+
+### Planned Features
+- 📋 **Push Notifications**: Web Push API and expo-notifications (optional)
+- 📋 **Advanced Features**: File uploads, voice input, etc.
 
 ---
 
@@ -171,34 +173,40 @@ Metro waiting on exp://localhost:8081
 
 ## Development
 
-### Project Structure
+### Project Structure (Ignite Boilerplate)
 
 ```
-ai-assistant-frontend/
-├── app/                      # Expo Router pages
-│   ├── (tabs)/
-│   │   ├── _layout.tsx      # Tab navigator
-│   │   ├── index.tsx        # Chat screen (main)
-│   │   └── settings.tsx     # Settings screen
-│   └── _layout.tsx          # Root layout
-├── components/
-│   ├── ui/
-│   │   ├── Button.tsx       # Reusable button
-│   │   └── Input.tsx        # Reusable input
-│   ├── chat/                # Chat components (future)
-│   └── mcp/                 # MCP components (future)
-├── hooks/                   # Custom React hooks
-├── lib/
-│   ├── constants.ts         # API URLs, config
-│   ├── storage.ts           # Platform-specific storage
-│   └── api-client.ts        # Fetch wrapper
-├── contexts/                # React context providers
+ai-agent-frontend/
+├── app/                      # Main application code
+│   ├── app.tsx              # Root component
+│   ├── navigators/
+│   │   └── AppNavigator.tsx # React Navigation config
+│   ├── screens/             # All app screens
+│   │   ├── LoginScreen.tsx
+│   │   ├── ChatScreen.tsx
+│   │   ├── ConversationsScreen.tsx
+│   │   ├── MCPScreen.tsx
+│   │   └── SettingsScreen.tsx
+│   ├── components/          # UI components
+│   │   ├── ui/              # Reusable UI components
+│   │   ├── chat/            # Chat-specific components
+│   │   └── mcp/             # MCP-specific components
+│   ├── services/            # Business logic
+│   │   ├── api-client.ts    # Fetch wrapper
+│   │   ├── storage.ts       # MMKV storage
+│   │   ├── constants.ts     # API URLs, config
+│   │   └── csrf.ts          # CSRF token handling
+│   ├── contexts/            # React context providers
+│   └── utils/hooks/         # Custom React hooks
+├── index.js                 # Entry point
 ├── assets/                  # Icons, images
+├── public/                  # PWA assets (manifest, service worker)
+├── android/                 # Native Android project (generated)
 ├── app.json                 # Expo configuration
+├── eas.json                 # EAS Build config
 ├── package.json
 ├── tsconfig.json
-├── tailwind.config.js       # NativeWind config
-└── eas.json                 # EAS Build config
+└── tailwind.config.js       # NativeWind config
 ```
 
 ### Development Workflow
@@ -641,7 +649,7 @@ For issues, questions, or contributions:
 
 ---
 
-**Current Status**: Phase 5 Complete - PWA Support + CSRF Implementation (65% Complete)
-**Next Steps**: Phase 6 - Android APK Build & Distribution
+**Current Status**: Ignite Migration Complete - PWA Working, Android Build Ready
+**Next Steps**: Build Android APK using WSL environment (see `LLM_BUILD_ANDROID_APK.md`)
 
-**Last Updated**: November 10, 2025
+**Last Updated**: November 25, 2025
