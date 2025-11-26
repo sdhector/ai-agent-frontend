@@ -49,3 +49,17 @@ yarn-error.*
 
 expo-env.d.ts
 # @end expo-cli
+
+# Archive folder (not needed for app to function)
+archive/
+
+# Android build outputs (large files)
+android/app/build/
+android/build/
+
+# Screenshots (debug artifacts)
+screenshot*.png
+
+# Temporary build output
+expo-output.log
+test-build/
