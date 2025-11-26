@@ -13,10 +13,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AppNavigator } from './navigators/AppNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Only import global.css on web platform
-if (Platform.OS === 'web') {
-  require('../global.css');
-}
+// Import global.css for NativeWind styling on all platforms
+import '../global.css';
 
 // Conditionally import SplashScreen only on native platforms
 // On web, expo-splash-screen can cause module registration issues
