@@ -43,3 +43,6 @@ Write-Host "`n=== Full Crash Dump ===" -ForegroundColor Cyan
 
 Write-Host "`n✅ Logs captured. Review above for errors." -ForegroundColor Green
 
+
+
+

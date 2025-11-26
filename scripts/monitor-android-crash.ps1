@@ -25,3 +25,6 @@ Write-Host "`nMonitoring device logs... (Press Ctrl+C to stop)`n" -ForegroundCol
 # Monitor logs with filters for crashes and React Native errors
 & $ADB logcat -v time | Select-String -Pattern "ReactNative|AndroidRuntime|FATAL|$PackageName|Error|Exception|Crash" -Context 2,5
 
+
+
+
